@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型配置操作手册 · 风控引擎管理平台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5; color: #333; font-size: 15px; line-height: 1.75;
+  }
+  a { color: #1890ff; text-decoration: none; }
+
+  /* ===== 顶栏 ===== */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100;
+    background: #fff; border-bottom: 1px solid #e8e8e8;
+    display: flex; align-items: center; padding: 0 24px; gap: 12px;
+  }
+  .topbar .logo-mark {
+    width: 30px; height: 30px; border-radius: 7px; background: linear-gradient(135deg, #1890ff, #096dd9);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; flex: none;
+  }
+  .topbar h1 { font-size: 16px; font-weight: 600; color: rgba(0,0,0,.85); }
+  .topbar .sub { font-size: 12px; color: rgba(0,0,0,.45); margin-left: 4px; }
+  .topbar .back {
+    margin-left: auto; font-size: 13px; color: #1890ff; border: 1px solid #1890ff;
+    border-radius: 6px; padding: 4px 14px; transition: all .2s;
+  }
+  .topbar .back:hover { background: #1890ff; color: #fff; }
+
+  /* ===== 侧边目录 ===== */
+  .toc {
+    position: fixed; top: 56px; bottom: 0; left: 0; width: 248px; z-index: 90;
+    background: #fff; border-right: 1px solid #e8e8e8; overflow-y: auto; padding: 20px 0;
+  }
+  .toc .toc-title { font-size: 12px; color: rgba(0,0,0,.4); padding: 0 20px 10px; letter-spacing: 1px; }
+  .toc a {
+    display: block; padding: 7px 20px 7px 28px; font-size: 13.5px; color: #555;
+    border-left: 3px solid transparent; transition: all .15s; line-height: 1.5;
+  }
+  .toc a:hover { color: #1890ff; background: #f5f8ff; }
+  .toc a.active { color: #1890ff; font-weight: 600; border-left-color: #1890ff; background: #eef5ff; }
+  .toc a .no { display: inline-block; width: 22px; color: rgba(0,0,0,.35); font-size: 12px; }
+  .toc a.active .no { color: #1890ff; }
+
+  /* ===== 正文 ===== */
+  .main { margin: 56px 0 0 248px; padding: 32px 48px 80px; }
+  .paper { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 48px 56px; }
+
+  .hero { border-bottom: 1px solid #f0f0f0; padding-bottom: 24px; margin-bottom: 36px; }
+  .hero h2 { font-size: 26px; font-weight: 700; color: rgba(0,0,0,.88); margin-bottom: 12px; }
+  .hero p { color: #555; }
+  .hero .hl { color: #1890ff; font-weight: 600; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .meta .chip {
+    font-size: 12.5px; background: #f5f7fa; border: 1px solid #e8ecf1; color: #555;
+    border-radius: 20px; padding: 3px 14px;
+  }
+  .meta .chip b { color: #1890ff; font-weight: 600; }
+
+  section { padding-top: 8px; }
+  section + section { margin-top: 52px; }
+  section h3 {
+    font-size: 20px; font-weight: 650; color: rgba(0,0,0,.85); margin-bottom: 16px;
+    padding-left: 14px; border-left: 4px solid #1890ff; line-height: 1.4;
+  }
+  section h4 { font-size: 16px; font-weight: 600; color: rgba(0,0,0,.75); margin: 24px 0 10px; }
+  section h5 {
+    font-size: 14.5px; font-weight: 650; color: rgba(0,0,0,.72); line-height: 1.5;
+    margin: 26px 0 8px; padding-left: 10px; border-left: 3px solid #d6e4ff;
+  }
+  section p { margin: 10px 0; color: #444; }
+
+  code {
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px;
+    background: #f5f5f5; border: 1px solid #eee; border-radius: 4px; padding: 1px 6px; color: #c7254e;
+  }
+  pre {
+    background: #282c34; color: #abb2bf; border-radius: 8px; padding: 16px 20px;
+    overflow-x: auto; margin: 14px 0; line-height: 1.6;
+  }
+  pre code { background: none; border: none; color: inherit; padding: 0; font-size: 13px; }
+  pre .k { color: #c678dd; } pre .s { color: #98c379; } pre .n { color: #e5c07b; } pre .c { color: #7f848e; }
+
+  blockquote {
+    background: #f0f7ff; border-left: 4px solid #1890ff; border-radius: 0 8px 8px 0;
+    padding: 12px 18px; margin: 14px 0; color: #444; font-size: 14px;
+  }
+  blockquote.warn { background: #fff7e8; border-left-color: #faad14; }
+  blockquote b { color: rgba(0,0,0,.8); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #e8e8e8; padding: 9px 14px; text-align: left; vertical-align: top; }
+  th { background: #fafafa; font-weight: 600; color: rgba(0,0,0,.75); white-space: nowrap; }
+  tr:nth-child(even) td { background: #fcfcfd; }
+
+  .img-wrap { margin: 18px 0 6px; }
+  .img-wrap img {
+    width: 100%; height: auto; border: 1px solid #e5e8ec; border-radius: 8px; cursor: zoom-in;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07); transition: box-shadow .2s; display: block;
+  }
+  .img-wrap img:hover { box-shadow: 0 4px 18px rgba(24,144,255,.18); }
+  .img-cap { text-align: center; font-size: 12.5px; color: rgba(0,0,0,.4); margin: 8px 0 4px; }
+
+  /* ===== 流程图（6 tab 配置流）===== */
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 20px 0; }
+  .flow .node {
+    flex: 1 1 120px; min-width: 118px; background: linear-gradient(180deg, #f8fbff, #eef5ff);
+    border: 1px solid #cfe3ff; border-radius: 9px; padding: 12px 10px; text-align: center;
+  }
+  .flow .node .t { font-weight: 650; color: #12509c; font-size: 14.5px; }
+  .flow .node .d { font-size: 12px; color: #667; margin-top: 5px; line-height: 1.5; }
+  .flow .arr { align-self: center; color: #1890ff; font-size: 18px; font-weight: 700; flex: none; }
+  .flow .node.gate { background: linear-gradient(180deg, #f8fff8, #eefbee); border-color: #bfe8bf; }
+  .flow .node.gate .t { color: #237804; }
+
+  /* ===== 时序（运行时发生了什么）===== */
+  .seq { margin: 20px 0 8px; position: relative; padding-left: 30px; }
+  .seq::before { content: ""; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px; background: #dbe7f5; border-radius: 2px; }
+  .seq .step { position: relative; margin-bottom: 14px; }
+  .seq .step::before {
+    content: ""; position: absolute; left: -26px; top: 7px; width: 10px; height: 10px; border-radius: 50%;
+    background: #1890ff; box-shadow: 0 0 0 3px #e6f2ff;
+  }
+  .seq .step .who {
+    display: inline-block; font-size: 11.5px; font-weight: 600; border-radius: 4px; padding: 1px 8px; margin-right: 8px; vertical-align: 1px;
+  }
+  .seq .step .who.e { background: #e6f2ff; color: #096dd9; }
+  .seq .step .who.m { background: #f0f9eb; color: #389e0d; }
+  .seq .step .who.r { background: #fff2e8; color: #d46b08; }
+  .seq .step .who.x { background: #f9f0ff; color: #722ed1; }
+  .seq .step .who.b { background: #f5f5f5; color: #666; }
+  .seq .step .txt { color: #444; font-size: 14px; }
+
+  .kbd { font-family: "SF Mono", Menlo, monospace; font-size: 12.5px; background: #fafafa; border: 1px solid #e0e0e0; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+
+  /* ===== 全屏看图 ===== */
+  #viewer {
+    display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,.78);
+    align-items: center; justify-content: center; cursor: zoom-out; padding: 30px;
+  }
+  #viewer img { max-width: 96%; max-height: 92%; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+
+  .foot { margin-top: 64px; padding-top: 20px; border-top: 1px solid #f0f0f0; font-size: 12.5px; color: rgba(0,0,0,.35); text-align: center; }
+
+  /* ===== 篇 / 章 ===== */
+  .part { margin: 66px 0 10px; padding-top: 26px; border-top: 1px solid #edf0f4; }
+  .part:first-of-type { margin-top: 30px; }
+  .part .pno { font-size: 11.5px; font-weight: 700; letter-spacing: 2px; color: #1890ff; }
+  .part .pt { font-size: 21px; font-weight: 700; color: rgba(0,0,0,.86); margin-top: 6px; letter-spacing: .5px; }
+  .part .pd { font-size: 13px; color: #8a93a0; margin-top: 7px; line-height: 1.65; max-width: 640px; }
+
+  .eyebrow {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: 12px; font-weight: 600; color: #1890ff; margin-bottom: 7px;
+  }
+  .eyebrow .st { background: #e6f2ff; color: #096dd9; border-radius: 4px; padding: 1px 7px; letter-spacing: .3px; }
+  .eyebrow .dim { color: #98a2b3; font-weight: 400; letter-spacing: 0; }
+  section h3 .chap { color: #a9c4e4; font-size: 15px; font-weight: 700; letter-spacing: 1px; margin-right: 10px; vertical-align: 1px; }
+
+  section { scroll-margin-top: 76px; }
+  .alias { display: block; height: 0; overflow: hidden; scroll-margin-top: 76px; }
+
+  .toc-group {
+    font-size: 11px; color: #a6aebb; letter-spacing: .8px;
+    padding: 16px 20px 5px; font-weight: 600;
+  }
+  .toc-group:first-of-type { padding-top: 6px; }
+
+  /* ===== 导读卡 ===== */
+  .paths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+  .paths a {
+    display: block; padding: 14px 16px; border: 1px solid #e6eef7; border-radius: 10px;
+    background: linear-gradient(180deg, #fbfdff, #f3f9ff); transition: all .18s;
+  }
+  .paths a:hover { border-color: #91caff; box-shadow: 0 4px 14px rgba(24,144,255,.13); transform: translateY(-1px); }
+  .paths a b { display: block; font-size: 14px; color: #12509c; margin-bottom: 4px; }
+  .paths a span { font-size: 12.5px; color: #7b8494; line-height: 1.55; }
+
+  /* ===== 业务线速查 ===== */
+  .bl-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 6px; }
+  .bl-nav a {
+    font-size: 13px; padding: 5px 15px; border-radius: 16px; background: #f2f7ff;
+    border: 1px solid #d6e6fa; color: #12509c; transition: all .15s;
+  }
+  .bl-nav a:hover { background: #1890ff; border-color: #1890ff; color: #fff; }
+  section h4[id] { scroll-margin-top: 76px; }
+
+  /* ===== 表格横滑容器 ===== */
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; border-radius: 8px; }
+  .tbl-wrap table { margin: 0; min-width: 600px; }
+  table.cap td:first-child, table.cap th:first-child { white-space: nowrap; }
+
+  /* ===== 代码块语言标 / 复制 ===== */
+  pre { position: relative; }
+  pre[data-lang]::after {
+    content: attr(data-lang); position: absolute; top: 0; right: 0;
+    font-size: 11px; letter-spacing: .6px; color: #8f98a6; background: #23272f;
+    padding: 3px 10px; border-radius: 0 8px 0 8px; text-transform: uppercase;
+  }
+  pre .copy {
+    position: absolute; right: 9px; bottom: 8px; font-size: 11.5px; color: #9aa5b1;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 5px;
+    padding: 2px 9px; cursor: pointer; opacity: 0; transition: all .15s; font-family: inherit;
+  }
+  pre:hover .copy { opacity: 1; }
+  pre .copy:hover { color: #fff; background: rgba(255,255,255,.16); }
+  pre .copy.done { color: #98c379; border-color: rgba(152,195,121,.5); }
+
+  .img-cap b { color: #1890ff; font-weight: 600; margin-right: 6px; }
+
+  /* ===== 进度条 / 回到顶部 ===== */
+  #bar {
+    position: fixed; top: 54px; left: 0; height: 2px; width: 0; z-index: 200;
+    background: linear-gradient(90deg, #1890ff, #69c0ff); transition: width .08s linear;
+  }
+  #totop {
+    position: fixed; right: 26px; bottom: 26px; width: 40px; height: 40px; border-radius: 50%;
+    background: #fff; border: 1px solid #e5e8ec; box-shadow: 0 2px 12px rgba(0,0,0,.1);
+    color: #1890ff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; pointer-events: none; transition: all .2s; z-index: 120;
+  }
+  #totop.on { opacity: 1; pointer-events: auto; }
+  #totop:hover { color: #fff; background: #1890ff; border-color: #1890ff; }
+
+  @media (max-width: 1100px) {
+    .toc { display: none; }
+    .main { margin-left: 0; padding: 24px 16px 60px; }
+    .paper { padding: 28px 22px; }
+  }
+  @media (max-width: 820px) {
+    .paths { grid-template-columns: 1fr; }
+    .paper { padding: 24px 16px; }
+  }
+  @media print {
+    .topbar, .toc, #bar, #totop, #viewer, pre .copy { display: none !important; }
+    body { background: #fff; }
+    .main { margin: 0; padding: 0; }
+    .paper { max-width: none; box-shadow: none; padding: 0; }
+    section { page-break-inside: avoid; }
+    a { color: #333; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo-mark">📖</div>
+  <h1>模型配置操作手册</h1>
+  <span class="sub">图文版 · 以「电商登录防撞库」完整实例贯穿</span>
+  <a class="back" href="javascript:window.close()">返回系统 ‹</a>
+</div>
+
+<nav class="toc" id="toc">
+  <div class="toc-title">目 录</div>
+
+  <div class="toc-group">第一部分 · 认识配置模型</div>
+  <a href="#s01"><span class="no">01</span>术语表</a>
+  <a href="#s02"><span class="no">02</span>全局：5 个 tab 配出模型</a>
+
+  <div class="toc-group">第二部分 · 六步配出一个策略</div>
+  <a href="#s03"><span class="no">03</span>Step 1 · 建模型 + 配字段</a>
+  <a href="#s04"><span class="no">04</span>Step 2 · 预处理管理</a>
+  <a href="#s05"><span class="no">05</span>Step 3 · 黑/白名单</a>
+  <a href="#s06"><span class="no">06</span>Step 4 · 抽象处理</a>
+  <a href="#s07"><span class="no">07</span>Step 5 · 规则 + 策略</a>
+  <a href="#s08"><span class="no">08</span>Step 6 · 激活并验证</a>
+
+  <div class="toc-group">第三部分 · 场景与排障</div>
+  <a href="#s09"><span class="no">09</span>能力地图 · 六大业务场景</a>
+  <a href="#s10"><span class="no">10</span>配完不生效？排查</a>
+
+  <div class="toc-group">附录</div>
+  <a href="#sA"><span class="no">A</span>出处 / 溯源</a>
+</nav>
+
+<div class="main">
+<div class="paper">
+
+<div class="hero">
+  <h2>模型配置操作手册（图文版）</h2>
+  <p>以一个完整可跑的实例贯穿：<span class="hl">电商登录防撞库 ——「同 IP 10 分钟内用 ≥3 个设备登录就拒绝」</span>。每一步都配后台真实截图，照着点就能配出来。</p>
+  <div class="meta">
+    <span class="chip">后台地址 <b>http://127.0.0.1:6581</b></span>
+    <span class="chip">默认账号 <b>admin / 123456</b></span>
+    <span class="chip">配置顺序 <b>字段 → 预处理 → 名单 → 抽象 → 规则 → 策略</b></span>
+    <span class="chip">版本 <b>v1.1</b></span>
+    <span class="chip">更新 <b>2026-10-27</b></span>
+  </div>
+  <div class="paths">
+    <a href="#s03"><b>① 我要配一个策略</b><span>从 Step 1 开始，6 步走完就是一条能上线的规则</span></a>
+    <a href="#s09"><b>② 我要判断能不能配</b><span>能力地图：7 类原子能力、硬限制与变通方案</span></a>
+    <a href="#s10"><b>③ 配完没生效</b><span>排查顺序：字段名 → eventId → 开关 → 配置推送</span></a>
+  </div>
+</div>
+
+<!-- ===== 01 术语表 ===== -->
+<div class="part">
+  <div class="pno">PART 1</div>
+  <div class="pt">认识配置模型</div>
+  <div class="pd">这套系统只有 6 类配置对象：字段、预处理、名单、抽象、规则、策略。先用 5 分钟看懂它们怎么串起来，后面每一步都不会迷路。</div>
+</div>
+
+<section id="s01">
+  <span class="alias" id="s0"></span>
+  <div class="eyebrow"><span class="st">速查</span><span class="dim">读 5 分钟，后面每个 Step 都会回到这些词</span></div>
+  <h3><span class="chap">01</span>术语表</h3>
+  <p>先扫一眼这张表，后面每个 Step 都会回到这些词。</p>
+
+  <h4>配置对象</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>术语</th><th>一句话解释</th><th>举例</th></tr>
+    <tr><td>模型 Model</td><td>一套风控配置的容器，对外用 GUID 调用</td><td>「电商-营销防刷」= 模型 236</td></tr>
+    <tr><td>字段 Field</td><td>模型认识哪些入参字段，名字<b>必须与业务 JSON 的 key 完全一致</b></td><td><code>userIP</code> / <code>mobile</code></td></tr>
+    <tr><td>预处理 PreItem</td><td>对原始字段做一次加工，产出衍生字段</td><td><code>1.2.3.4</code> → 「江苏省」</td></tr>
+    <tr><td>黑/白名单 DataList</td><td>一堆值的集合，靠条件里的「在列表…中」被引用</td><td>手机号黑名单</td></tr>
+    <tr><td>抽象 Abstraction</td><td>滑窗统计<b>指标</b>：对历史事件做 count / 去重 / 求和</td><td>「10 分钟内同 IP 的设备数」</td></tr>
+    <tr><td>聚合类型</td><td>指标怎么算：求总数、求不同项总数、求和、平均、最大、最小</td><td>去重计数 = distinct count</td></tr>
+    <tr><td>搜索字段</td><td>圈定统计范围的等值条件（相当于 SQL 的 <code>WHERE</code>）</td><td><code>userIP = 1.2.3.4</code></td></tr>
+    <tr><td>统计字段</td><td>被统计的那一列（求总数时不需要）</td><td>数 <code>deviceId</code> 有几个不同值</td></tr>
+    <tr><td>时间片（滑窗）</td><td>只统计最近一段时间内的事件</td><td>10 分钟、1 天</td></tr>
+    <tr><td>过滤条件</td><td>抽象/规则的前置 <code>IF</code>，编译成 Groovy 的 <code>check(data, lists)</code></td><td><code>userIP</code> 不为空</td></tr>
+    <tr><td>规则 Rule</td><td>「命中条件 + 命中后加几分」的最小打分单元</td><td>设备数 ≥3 加 100 分</td></tr>
+    <tr><td>策略 Activation</td><td>一组规则的集合 + 阈值，可整体启停；一次请求可命中多个策略</td><td>「登录异常」</td></tr>
+  </table></div>
+
+  <h4>打分字段（规则表单里的 6 项）</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>术语</th><th>解释</th></tr>
+    <tr><td>初始得分</td><td>规则命中即给的<b>固定底分</b>，任何操作符都影响不到它</td></tr>
+    <tr><td>命中基数</td><td>与指标值做四则运算的<b>左操作数</b></td></tr>
+    <tr><td>操作符</td><td>无 / 加 / 减 / 乘 / 除，决定基数和指标值怎么算</td></tr>
+    <tr><td>指标字段（特征字段）</td><td>参与运算的<b>变量</b>，可选字段或抽象值</td></tr>
+    <tr><td>比率</td><td>给指标值做缩放，单位是<b>百分数</b>（100 = 1.0×，50 = 0.5×）</td></tr>
+    <tr><td>最大值</td><td>本条规则的分数上限，<b>0 = 不封顶</b></td></tr>
+    <tr><td>警戒值 / 拒绝值</td><td>策略上的两条线：总分 ≥ 警戒值 → <code>review</code>，≥ 拒绝值 → <code>reject</code></td></tr>
+  </table></div>
+
+  <h4>运行时</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>术语</th><th>解释</th></tr>
+    <tr><td>管理端 Admin</td><td>端口 6581，负责配置；改完经 Redis 发布订阅<b>热推</b>给引擎，不用重启</td></tr>
+    <tr><td>引擎 Engine</td><td>端口 6582，对外提供 <code>/services/v1/upload</code>、<code>/getScore</code> 等实时决策接口</td></tr>
+    <tr><td>GUID</td><td>模型的对外调用标识（不是数字 ID）</td></tr>
+    <tr><td>reqId / eventId</td><td>请求流水号 / 事件流水号，用于<b>幂等</b>：同一个 ID 重复上报只处理一次</td></tr>
+    <tr><td>抽象值 <code>-1</code></td><td>该指标被过滤条件挡掉，表示「本次不统计」；它会原样参与规则运算</td></tr>
+  </table></div>
+
+  <h4>串起来看：一次请求怎么走完</h4>
+  <p>场景：同一个 IP 在 10 分钟内用 3 台设备登录。</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>步</th><th>涉及术语</th><th>本例发生了什么</th></tr>
+    <tr><td>1</td><td>字段</td><td>业务方传入 <code>userIP=1.2.3.4</code>、<code>deviceId=dev-3</code>、<code>loginTime=…</code></td></tr>
+    <tr><td>2</td><td>预处理</td><td>手机号 <code>13800000001</code> → 号段 <code>1380000</code></td></tr>
+    <tr><td>3</td><td>抽象 + 过滤条件</td><td>「10 分钟内同 IP 的设备数」→ 查 Mongo 得 <b>3</b></td></tr>
+    <tr><td>4</td><td>规则 + 指标字段</td><td>过滤条件 <code>设备数 ≥ 3</code> 命中 → 初始得分 <b>100</b></td></tr>
+    <tr><td>5</td><td>策略 + 阈值</td><td>总分 100 ≥ 拒绝值 80 → <b>reject</b></td></tr>
+  </table></div>
+  <blockquote><b>一句话记忆</b>：字段进 → 预处理加工 → 名单先拦 → 抽象算数 → 规则打分 → 策略定级。</blockquote>
+</section>
+
+<!-- ===== 02 一个模型由 5 个 tab 配出来 ===== -->
+<section id="s02">
+  <span class="alias" id="s1"></span>
+  <div class="eyebrow"><span class="st">总览</span><span class="dim">先建立全局图，再动手</span></div>
+  <h3><span class="chap">02</span>一个模型由 5 个 tab 配出来</h3>
+  <p>进入「首页 → 电商 → 营销防刷」点开任意模型，右侧就是 5 个 tab：</p>
+  <div class="img-wrap"><img src="/manual-img/01-model-list.png" width="3360" height="2100" alt="模型列表" loading="lazy"></div>
+  <div class="img-cap"><b>图 1</b> 模型列表页</div>
+  <p>配置顺序固定为：<b>字段 → 预处理 → 黑/白名单 → 抽象 → 规则 → 策略</b>，前面的输出是后面的输入：</p>
+
+  <div class="flow">
+    <div class="node"><div class="t">字段管理</div><div class="d">定义模型认识哪些字段</div></div>
+    <div class="arr">→</div>
+    <div class="node"><div class="t">预处理管理</div><div class="d">原始字段加工 / 名单过滤</div></div>
+    <div class="arr">→</div>
+    <div class="node"><div class="t">抽象处理</div><div class="d">算滑窗统计指标</div></div>
+    <div class="arr">→</div>
+    <div class="node"><div class="t">规则</div><div class="d">指标 ≥ 阈值 → 加分</div></div>
+    <div class="arr">→</div>
+    <div class="node"><div class="t">策略管理</div><div class="d">分数 vs 预警/拒绝值</div></div>
+    <div class="arr">→</div>
+    <div class="node gate"><div class="t">激活</div><div class="d">引擎实时生效</div></div>
+  </div>
+
+  <p><b>核心逻辑一句话</b>：业务方传事件 → 抽象算出"这个 IP 10 分钟登录了几次" → 规则比较"≥3 次？加 100 分" → 策略把总分和 40/80 比 → 出 <code>pass / review / reject</code>。</p>
+</section>
+
+<!-- ===== 03 新建模型 + 配字段 ===== -->
+<div class="part">
+  <div class="pno">PART 2</div>
+  <div class="pt">六步配出一个策略</div>
+  <div class="pd">按「字段 → 预处理 → 名单 → 抽象 → 规则 → 策略」的顺序走完 6 步，得到的是一条线上可用的撞库拦截策略。每一步都配真实后台截图。</div>
+</div>
+
+<section id="s03">
+  <span class="alias" id="s3"></span>
+  <div class="eyebrow"><span class="st">Step 1 / 6</span><span class="dim">建模 · 定义模型认识哪些字段</span></div>
+  <h3><span class="chap">03</span>新建模型 + 配字段</h3>
+  <p>左侧业务树选「电商 → 营销防刷」，点开模型进入配置页。第一个 tab 就是<b>字段管理</b>——它定义"这个模型认识哪些字段"，是后面所有 tab 的地基：</p>
+  <div class="img-wrap"><img src="/manual-img/02-model-detail-tab1.png" width="3360" height="2100" alt="字段管理" loading="lazy"></div>
+  <div class="img-cap"><b>图 2</b> 字段管理（模型 236 实配）</div>
+  <p>点「新增」弹出新字段表单：</p>
+  <div class="img-wrap"><img src="/manual-img/09-dialog-field-new.png" width="3360" height="2100" alt="新建字段弹窗" loading="lazy"></div>
+  <div class="img-cap"><b>图 3</b> 新建字段弹窗</div>
+  <p>本实例的 9 个字段（对照业务方的登录请求体设计）：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>字段名</th><th>显示名称</th><th>字段类型</th><th>是否索引</th><th>为什么要它</th></tr>
+    <tr><td><code>userId</code></td><td>用户ID</td><td>字符串</td><td><b>是</b></td><td>抽象要按用户统计</td></tr>
+    <tr><td><code>userIP</code></td><td>用户IP</td><td>字符串</td><td><b>是</b></td><td>规则的主键：按 IP 统计</td></tr>
+    <tr><td><code>deviceId</code></td><td>设备ID</td><td>字符串</td><td><b>是</b></td><td>distinct 的目标：数"几个设备"</td></tr>
+    <tr><td><code>mobile</code></td><td>用户手机号</td><td>字符串</td><td>否</td><td>预处理（号码段）用</td></tr>
+    <tr><td><code>loginTime</code></td><td>登录时间</td><td>长整型</td><td><b>是</b></td><td>滑窗查询的时间轴</td></tr>
+    <tr><td><code>eventId</code></td><td>登录事件流水号</td><td>字符串</td><td>是</td><td>幂等去重</td></tr>
+    <tr><td><code>passwd</code></td><td>登录密码明文</td><td>字符串</td><td>否</td><td>示例占位，生产不传</td></tr>
+    <tr><td><code>os</code></td><td>操作系统</td><td>字符串</td><td>否</td><td>扩展用</td></tr>
+    <tr><td><code>channel</code></td><td>来源渠道</td><td>字符串</td><td>否</td><td>扩展用</td></tr>
+  </table></div>
+  <blockquote class="warn"><b>两个硬规矩</b>：<br>
+    1. <b>抽象用到的字段必须勾"是否索引"</b>。勾了索引，Mongo 端才会建 <code>(字段, loginTime)</code> 复合索引；不勾，滑窗查询会退化成全表扫。<br>
+    2. <b>字段名必须和业务方 JSON 里的 key 一模一样</b>（大小写敏感）。引擎按名取值，取不到就当 null，不报错——这是"配完不生效"的第一大原因。
+  </blockquote>
+</section>
+
+<!-- ===== 04 预处理管理 ===== -->
+<section id="s04">
+  <span class="alias" id="s4"></span>
+  <div class="eyebrow"><span class="st">Step 2 / 6</span><span class="dim">加工 · 用原始字段派生出新字段</span></div>
+  <h3><span class="chap">04</span>预处理管理</h3>
+  <p>预处理 = 在打分前对原始字段做一次加工，产出"衍生字段"。模型 236 已配了 3 条真实预处理：</p>
+  <div class="img-wrap"><img src="/manual-img/04-tab-preitem.png" width="3360" height="2100" alt="预处理管理" loading="lazy"></div>
+  <div class="img-cap"><b>图 4</b> 预处理管理</div>
+  <div class="tbl-wrap"><table>
+    <tr><th>字段名</th><th>来源字段名</th><th>插件</th><th>说明</th></tr>
+    <tr><td>IP归属地</td><td>用户IP</td><td>IP转换成地址</td><td>把 <code>1.2.3.4</code> 解析成「省市」，供"登录地突变"类规则用</td></tr>
+    <tr><td>手机号码归属地</td><td>用户手机</td><td>手机号码归属地</td><td>号码 → 归属省市</td></tr>
+    <tr><td>手机号码段</td><td>用户手机</td><td>字符串截短（0,7）</td><td>取前 7 位 = 号段，可识别虚拟运营商</td></tr>
+  </table></div>
+  <p>本实例的撞库规则不需要衍生字段，<b>这 3 条保留即可</b>（预处理只有在被规则引用时才真正参与打分链路）。</p>
+</section>
+
+<!-- ===== 05 黑/白名单管理 ===== -->
+<section id="s05">
+  <span class="alias" id="s5"></span>
+  <div class="eyebrow"><span class="st">Step 3 / 6</span><span class="dim">拦截 · 一堆值的集合，命中即可拦</span></div>
+  <h3><span class="chap">05</span>黑/白名单管理</h3>
+  <p>名单只负责<b>存值和存名字</b>，本身不绑定任何模型字段：</p>
+  <div class="img-wrap"><img src="/manual-img/05-tab-bwlist.png" width="3360" height="2100" alt="黑/白名单管理" loading="lazy"></div>
+  <div class="img-cap"><b>图 5</b> 黑/白名单管理</div>
+  <div class="tbl-wrap"><table>
+    <tr><th>界面项</th><th>作用</th></tr>
+    <tr><td>列表名（填中文，如「手机号黑名单」）</td><td>引擎引用键是英文 <code>name</code>，由后端自动生成 <code>dataList_&lt;id&gt;</code>；条件里是下拉选，不用手写</td></tr>
+    <tr><td>名单类型 黑/白</td><td>仅标签，<b>引擎不按它自动拒绝/放行</b></td></tr>
+    <tr><td>管理字段</td><td>仅注释 + 决定「新增记录」弹窗有几个输入框，引擎运行时不读；<b>保存会清空该名单已导入的内容</b></td></tr>
+    <tr><td>管理内容</td><td>真正的名单值，逐条新增或用 <code>res/dataRecord_temp.xlsx</code> 批量导入</td></tr>
+  </table></div>
+  <p><b>「拿哪个事件字段去比对」不在名单界面选</b>，而在「抽象处理」或「策略管理」的规则条件里：</p>
+  <p><b>① 建名单</b>：黑白名单管理 → 新增 → 列表名「手机号黑名单」+ 名单类型「黑名单」→ 管理字段加一个「手机号码」→ 管理内容填 <code>13800000000</code>。<br>
+  <b>② 绑定字段</b>：进抽象（或规则）编辑 → 左侧级联选 <b>字段管理 → 用户手机号</b>（<code>fields.mobile</code>）→ 运算符选 <b>「在列表...中」</b> → 右侧下拉选「手机号黑名单」。<br>
+  <b>③ 保存后自动生成</b>：</p>
+<pre data-lang="groovy"><code><span class="k">if</span> (<span class="n">lists</span>.dataList_86.containsKey(<span class="n">data</span>.fields.mobile))</code></pre>
+  <blockquote>放抽象条件里 = 硬前置过滤（不命中该指标直接置 <code>-1</code> 跳过）；放规则里 = 命中后加分或直接 reject。<br>
+  <code>MODEL_ID=1</code> 的系统名单（如 <code>radar_mobile_black_list</code>）会自动合并进所有模型，可跨模型共用。</blockquote>
+</section>
+
+<!-- ===== 06 抽象处理 ===== -->
+<section id="s06">
+  <span class="alias" id="s6"></span>
+  <div class="eyebrow"><span class="st">Step 4 / 6</span><span class="dim">算数 · 把事件流压成滑窗指标</span></div>
+  <h3><span class="chap">06</span>抽象处理（本例的核心）</h3>
+  <p>抽象 = 把「原始事件流」压缩成「滑窗统计值」。列表里的 13 个指标就是风控的"仪表盘"：</p>
+  <div class="img-wrap"><img src="/manual-img/06-tab-abstraction.png" width="3360" height="2100" alt="抽象处理" loading="lazy"></div>
+  <div class="img-cap"><b>图 6</b> 抽象处理（14 个滑窗指标）</div>
+  <p>每条指标点进去是一个表单，关键字段如下。<b>本实例要新增第一条</b>：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>表单项</th><th>本例的值</th><th>含义</th></tr>
+    <tr><td>指标名</td><td><code>10分钟内IP关联设备数</code>（引擎里叫 <code>log_did_ip_10_min_qty</code>）</td><td>规则引用时用这个名字</td></tr>
+    <tr><td>聚合类型</td><td><b>去重计数（distinct count）</b></td><td>count = 次数；distinct = 数有多少个不同值</td></tr>
+    <tr><td>搜索字段</td><td><code>userIP</code></td><td>按 IP 圈定事件范围（等值条件）</td></tr>
+    <tr><td>函数字段</td><td><code>deviceId</code></td><td>对圈定范围内的事件数"不同 deviceId 有几个"</td></tr>
+    <tr><td>窗口</td><td>10 分钟</td><td>只统计最近 10 分钟内的事件</td></tr>
+  </table></div>
+  <p>它翻译成 Mongo 查询就是（<b>引擎自动生成，不用手写</b>）：</p>
+<pre data-lang="mongo"><code>db.entity_236.<span class="k">distinct</span>(<span class="s">"deviceId"</span>, {
+  userIP: <span class="s">"1.2.3.4"</span>,
+  loginTime: { <span class="n">$gte</span>: now - 10*60*1000, <span class="n">$lte</span>: now }
+})</code></pre>
+</section>
+
+<!-- ===== 07 规则 + 策略 ===== -->
+<section id="s07">
+  <span class="alias" id="s8"></span>
+  <div class="eyebrow"><span class="st">Step 5 / 6</span><span class="dim">打分 · 指标 → 分数 → 决策</span></div>
+  <h3><span class="chap">07</span>规则 + 策略（把指标变成决策）</h3>
+  <h4>7.1 配策略</h4>
+  <p>第六个 tab「策略管理」。一个策略 = 一份可独立启停的规则组合 + 阈值：</p>
+  <div class="img-wrap"><img src="/manual-img/08-tab-activation.png" width="3360" height="2100" alt="策略管理" loading="lazy"></div>
+  <div class="img-cap"><b>图 7</b> 策略管理</div>
+  <div class="tbl-wrap"><table>
+    <tr><th>表单项</th><th>本例的值</th><th>含义</th></tr>
+    <tr><td>策略名</td><td>登录异常</td><td>一行一个版本</td></tr>
+    <tr><td>警戒值</td><td><b>40</b></td><td>总分 ≥ 40 → <code>review/warn</code></td></tr>
+    <tr><td>拒绝值</td><td><b>80</b></td><td>总分 ≥ 80 → <code>reject</code></td></tr>
+    <tr><td>开关（最右）</td><td>开</td><td>只有开了才生效</td></tr>
+  </table></div>
+  <h4>7.2 配规则</h4>
+  <p>点策略行的「<b>管理规则</b>」进入规则列表：</p>
+  <div class="img-wrap"><img src="/manual-img/11-rule-list.png" width="3360" height="2100" alt="管理规则" loading="lazy"></div>
+  <div class="img-cap"><b>图 8</b> 规则列表</div>
+  <p>规则 = 「命中条件（过滤条件）+ 命中后加几分」。本实例新增一条：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>表单项</th><th>本例的值</th><th>作用</th></tr>
+    <tr><td>显示名称</td><td>10分钟内IP关联设备数大于等于3</td><td></td></tr>
+    <tr><td>初始得分</td><td>100</td><td>命中即给的固定底分</td></tr>
+    <tr><td>命中基数</td><td>0</td><td>与指标值做运算的左操作数</td></tr>
+    <tr><td>操作符</td><td>无</td><td>无 / 加 / 减 / 乘 / 除</td></tr>
+    <tr><td>指标字段</td><td>不填</td><td>参与运算的变量（字段或抽象）</td></tr>
+    <tr><td>比率</td><td>100</td><td>百分数，100 = 1.0×</td></tr>
+    <tr><td>最大值</td><td>0</td><td>本条规则分数上限，<b>0 = 不封顶</b></td></tr>
+    <tr><td>过滤条件</td><td><code>abstractions.log_did_ip_10_min_qty &gt;= 3</code></td><td>不命中则该规则 0 分</td></tr>
+  </table></div>
+
+  <h4>7.3 打分公式</h4>
+  <p>引擎按下面这条式子算每条规则的得分（源码 <code>AntiFraudEngineImpl</code>）：</p>
+<pre data-lang="text"><code>规则得分 = 初始得分 + (命中基数 操作符 (指标字段值 × 比率%))
+           └ 最大值 &gt; 0 时，结果封顶到最大值
+策略总分 = Σ 各条命中规则的得分
+
+总分 ≥ 拒绝值(80)              → <span class="s">reject</span>
+警戒值(40) ≤ 总分 &lt; 80         → <span class="n">review</span>
+总分 &lt; 40                      → <span class="s">pass</span></code></pre>
+  <p>四种操作符（V = 指标字段值，R = 比率）：</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>操作符</th><th>规则得分</th><th>适用</th></tr>
+    <tr><td>无</td><td><code>初始得分</code></td><td>命中即固定分，指标字段被禁用</td></tr>
+    <tr><td>加</td><td><code>初始得分 + 命中基数 + V×R%</code></td><td>指标越大分越高</td></tr>
+    <tr><td>减</td><td><code>初始得分 + 命中基数 − V×R%</code></td><td>指标越大分越低</td></tr>
+    <tr><td>乘</td><td><code>初始得分 + 命中基数 × V×R%</code></td><td>基数当系数，最常用</td></tr>
+    <tr><td>除</td><td><code>初始得分 + 命中基数 ÷ (V×R%)</code></td><td>保留 2 位小数</td></tr>
+  </table></div>
+  <p><b>三个算例</b></p>
+  <div class="tbl-wrap"><table>
+    <tr><th>场景</th><th>配置</th><th>计算</th><th>结果</th></tr>
+    <tr><td>本例（二值）</td><td>初始 100 / 操作符 无</td><td><code>100</code></td><td>≥80 → reject；不命中 → 0 → pass</td></tr>
+    <tr><td>236 线上规则</td><td>初始 20 / 基数 1 / 乘 / 比率 100 / 指标「1天内IP关联用户数」=13</td><td><code>20 + 1×13</code></td><td>33 → review</td></tr>
+    <tr><td>梯度打分</td><td>A 规则 ≥3 台加 60，B 规则 ≥10 台再加 50</td><td><code>60</code> 或 <code>60+50</code></td><td>命中 A → review，A+B → reject</td></tr>
+  </table></div>
+  <blockquote class="warn"><b>四个坑</b>：<br>
+  1）<b>最大值 0 是不封顶</b>，不是 0 分；要限制上限就填正数。<br>
+  2）<b>乘 + 命中基数 0 是死配置</b>：<code>0 × 任何值 = 0</code>，指标字段白配。<br>
+  3）<b>除没有除零保护</b>：<code>V×R%</code> 为 0 时抛异常，整个请求 500。<br>
+  4）<b>被抽象过滤掉的事件，指标值是 <code>-1</code></b>：会原样参与运算（乘 → 扣分）。</blockquote>
+</section>
+
+<!-- ===== 08 激活并验证 ===== -->
+<section id="s08">
+  <span class="alias" id="s9"></span>
+  <div class="eyebrow"><span class="st">Step 6 / 6</span><span class="dim">上线 · 开开关、单发验证、复现场景</span></div>
+  <h3><span class="chap">08</span>激活并验证</h3>
+  <h4>8.1 开开关</h4>
+  <p>模型右上角的总开关 + 策略行的开关都要开（见 §7.1 截图）。配置经 Redis 发布订阅热推给引擎，<b>不用重启</b>。</p>
+  <h4>8.2 单发验证</h4>
+  <p>下面这条 curl 就是模型 236（电商-营销防刷）的<b>真实调用</b>（GUID 取自「模型列表接口」），可直接复制执行：</p>
+<pre data-lang="bash"><code>TS=$(date +%s)000   <span class="c"># 毫秒时间戳；macOS 的 BSD date 不支持 %3N，直接补三个 0</span>
+curl -s -X POST http://127.0.0.1:6582/services/v1/upload \
+  -H <span class="s">'Content-Type: application/json'</span> \
+  -d <span class="s">"{
+    \"guid\": \"E48E20E0-4B47-4152-B21D-486F1C51500B\",
+    \"reqId\": \"verify-1\",
+    \"jsonInfo\": {
+      \"loginTime\": ${TS},
+      \"userId\": \"u1\", \"eventId\": \"evt-1\",
+      \"userIP\": \"9.9.9.9\", \"deviceId\": \"d1\",
+      \"mobile\": \"13800000001\",
+      \"passwd\": \"x\", \"os\": \"app\", \"channel\": \"app\"
+    }
+  }"</span></code></pre>
+  <blockquote><b>loginTime 怎么填</b>：必须是 <b>13 位毫秒时间戳</b>（纯数字、不加引号）——10 位秒会被当成 1970 年，抽象窗口全部落空、分数恒为 0。<br>
+  滑窗是<b>以事件自己的 loginTime 为基准往前取</b>（实测：把 loginTime 写成 1 小时前，同 IP 换 3 设备照样触发 reject/100）。所以复现场景时<b>整批请求用同一个值</b>即可，不必每次重算。</blockquote>
+  <p>实测返回（首次必然 pass，因为 Mongo 里还没有这个 IP 的历史；<code>abstractions</code> 是 14 个滑窗指标，此处节选）：</p>
+<pre data-lang="json"><code>{"success":true,"msg":"","code":"100","data":{},
+ "abstractions":{"log_ip_10_min_qty":1,"log_did_ip_10_min_qty":1, ...},
+ "activations":{"login_exception":{"risk":"pass","score":0}},
+ "hitsDetail":{"login_exception":[]}}</code></pre>
+  <blockquote><code>activations</code> 的 key 是策略名，<code>risk</code> 是决策、<code>score</code> 是总分；<code>hitsDetail</code> 列出命中的规则。换模型时只要替换 <code>guid</code>，其余不变。</blockquote>
+
+  <h5>返回字段速查</h5>
+<pre data-lang="json"><code>{
+  "success": true,        <span class="c">// 整条链路是否跑通，false 时看 msg</span>
+  "msg": "",              <span class="c">// 失败原因（模型不存在 / 参数校验不通过 / 时间不正确）</span>
+  "code": "100",          <span class="c">// 业务码，100 = 成功</span>
+  "data": {},             <span class="c">// 校验失败时才有内容（哪个字段不合法）</span>
+  "abstractions": {       <span class="c">// ★ 抽象层：14 个滑窗指标，值 = 窗口内满足条件的量</span>
+    "log_ip_1_day_qty": 4,       <span class="c">// 同 userIP 近 1 天登录次数 → 4</span>
+    "log_uid_1_day_qty": 3,      <span class="c">// 同 userId 近 1 天登录次数 → 3</span>
+    "log_did_ip_1_day_qty": 3,   <span class="c">// 同 userIP 近 1 天几个不同 deviceId → 3</span>
+    "log_ip_1_hour_qty": 0,      <span class="c">// 同 userIP 近 1 小时登录次数 → 0</span>
+    "log_ip_10_min_qty": 0,      <span class="c">// 同 userIP 近 10 分钟登录次数 → 0</span>
+    "log_did_ip_10_min_qty": 0   <span class="c">// 同 userIP 近 10 分钟几个不同 deviceId → 0（本例规则的输入）</span>
+  },
+  "adaptations": {},      <span class="c">// 预处理（黑/白名单等）产出，默认空</span>
+  "activations": {        <span class="c">// ★ 策略层：每个策略一个决策</span>
+    "login_exception": { "risk": "pass", "score": 0 }   <span class="c">// risk=pass/review/reject，score=命中规则总分</span>
+  },
+  "hitsDetail": {         <span class="c">// ★ 命中明细：只列触发的规则（id / 加分 / 描述）</span>
+    "login_exception": []
+  },
+  "respTimes": { "adaptations": 12, "activations": 1, "abstractions": 107 }  <span class="c">// 各阶段耗时(ms)</span>
+}</code></pre>
+  <p><b>指标命名规律</b>（看名字就知道在算什么）：<code>log_</code> + <code>ip</code>/<code>uid</code>/<code>did</code> = 按 IP/用户/设备统计<b>次数</b>；多一个 <code>_ip</code>（如 <code>log_did_ip</code>）= 按 IP 分组数<b>去重</b>值→"几个设备/几个账号"；结尾 <code>_10_min</code> / <code>_1_hour</code> / <code>_1_day</code> = 统计窗口。</p>
+  <blockquote class="warn"><b>⚠️ 看到"1 天有值、1 小时和 10 分钟全是 0"别以为配错了</b>——通常说明<b>本次事件没入库</b>。<code>entity_236</code> 以 <code>eventId</code> 去重：同一 <code>eventId</code> 重复提交只留第一条，后续直接丢弃。事件没写进去，滑窗自然查不到它自己。<br>
+  实测：用 §8.2 的参数再跑一次（<code>eventId</code> 仍是 <code>evt-1</code>），返回与第一次完全一致，<code>1_hour</code>/<code>10_min</code> 恒为 0、<code>1_day</code> 仍是 4（历史数据）。<b>验证时每次都要换 eventId</b>，否则会误判成"规则没生效"。</blockquote>
+  <h4>8.3 复现攻击场景</h4>
+  <p>同一 IP 换 3 个设备连打 3 次（注意每次换 <code>deviceId</code> 和 <code>eventId</code>；用全新 IP <code>7.7.7.7</code> 避免和历史数据混淆）：</p>
+<pre data-lang="bash"><code>GUID="E48E20E0-4B47-4152-B21D-486F1C51500B"; TS=$(date +%s)000
+for i in 1 2 3; do
+curl -s -X POST http://127.0.0.1:6582/services/v1/upload -H <span class="s">'Content-Type: application/json'</span> \
+  -d <span class="s">"{\"guid\": \"$GUID\",\"reqId\": \"demo-$i\",\"jsonInfo\": {\"loginTime\": $TS,\"userId\": \"demo-$i\",
+  \"eventId\": \"evt-demo-$i\",\"userIP\": \"7.7.7.7\", \"deviceId\": \"dev-$i\",\"mobile\": \"1380000000$i\",
+  \"passwd\": \"x\", \"os\": \"app\", \"channel\": \"app\"}}"</span> | python3 -m json.tool | grep -A3 activations
+done</code></pre>
+  <div class="tbl-wrap"><table>
+    <tr><th>第几次</th><th>deviceId</th><th>引擎返回</th><th>原因</th></tr>
+    <tr><td>1</td><td>dev-1</td><td>pass / score=0</td><td>窗口内该 IP 只有 1 台设备</td></tr>
+    <tr><td>2</td><td>dev-2</td><td>pass / score=0</td><td>2 台 &lt; 3，未到阈值</td></tr>
+    <tr><td>3</td><td>dev-3</td><td><b style="color:#f5222d">reject / score=100</b></td><td>distinct(deviceId)=3，规则命中加 100 ≥ 拒绝值 80</td></tr>
+  </table></div>
+  <p>第 3 次的完整返回片段：</p>
+<pre data-lang="json"><code>"activations": {"login_exception": {"risk": "reject", "score": 100}},
+"hitsDetail": {"login_exception": [{"key": "442", "value": 100.0, "desc": "10分钟内IP关联设备数大于等于3"}]}</code></pre>
+  <p>再换一个新 IP（如 <code>6.6.6.6</code>）打一次 → 又是 pass / score=0。<b>这就是"同 IP 换设备"规则生效的完整证据链</b>。</p>
+  <h4>8.4 这次请求在引擎里发生了什么</h4>
+  <div class="seq">
+    <div class="step"><span class="who b">业务方</span><span class="txt">POST /upload，jsonInfo 带 9 个字段</span></div>
+    <div class="step"><span class="who e">engine</span><span class="txt">字段校验（对照字段管理）→ 预处理（IP 归属地等）</span></div>
+    <div class="step"><span class="who m">MongoDB</span><span class="txt">写 1 条事件到 entity_236</span></div>
+    <div class="step"><span class="who m">MongoDB</span><span class="txt">14 个抽象滑窗查询（含本例的 distinct deviceId）</span></div>
+    <div class="step"><span class="who e">engine</span><span class="txt">规则打分：distinct ≥ 3 ? +100 → 总分 vs 40/80 → risk</span></div>
+    <div class="step"><span class="who r">Redis</span><span class="txt">写 risk_result 缓存</span></div>
+    <div class="step"><span class="who x">ES</span><span class="txt">写命中明细归档</span></div>
+    <div class="step"><span class="who b">业务方</span><span class="txt">收到 <code>{risk, score}</code> 决策结果</span></div>
+  </div>
+</section>
+
+<!-- ===== 09 能力地图 ===== -->
+<div class="part">
+  <div class="pno">PART 3</div>
+  <div class="pt">场景与排障</div>
+  <div class="pd">能力边界在哪里、别的业务线怎么套用同一套原子能力、配完不生效时按什么顺序排查。</div>
+</div>
+
+<section id="s09">
+  <span class="alias" id="s12"></span>
+  <div class="eyebrow"><span class="st">参考</span><span class="dim">能力边界 → 六条业务线 → 变通方案 → 落地顺序</span></div>
+  <h3><span class="chap">09</span>能力地图：六大业务能配哪些场景</h3>
+  <p>配不出来的场景通常不是"配置没写对"，而是这套引擎只有下面 7 类原子能力，超出范围就得换思路：</p>
+  <div class="tbl-wrap"><table class="cap">
+    <tr><th>能力</th><th>具体支持</th><th>硬限制</th></tr>
+    <tr><td>字段</td><td>字符串 / 整数 / 长整型 / 浮点</td><td>名字必须与业务 JSON 的 key 一致，取不到即 null</td></tr>
+    <tr><td>预处理插件</td><td>IP 转地址、手机号归属地、GPS 转地址、字符串截短、字段合并、时间格式化、敏感时间段、HTTP 调用</td><td>一个衍生字段只挂一个插件；HTTP 插件是<b>同步阻塞</b>调用</td></tr>
+    <tr><td>黑白名单</td><td>精确字符串匹配，系统名单跨模型共享</td><td>无正则/前缀/区间；多字段按逗号拼成一串</td></tr>
+    <tr><td>抽象指标</td><td>count / distinct count / sum / avg / max / min，窗口 秒~年</td><td>圈定范围只有<b>一个</b>等值搜索字段</td></tr>
+    <tr><td>条件</td><td>前缀、包含、等于、大小比较、在名单中、为空 + All/Any/NotAll/None 组合</td><td>只能组合字段与抽象值，不认识"事件序列"</td></tr>
+    <tr><td>打分</td><td>初始得分 + 基数四则运算（加/减/乘/除），可设上限</td><td>单条规则只引用一个指标字段</td></tr>
+    <tr><td>策略</td><td>多策略并行，警戒/拒绝双阈值</td><td>输出只有 <code>pass / review / reject</code> + 分数</td></tr>
+  </table></div>
+  <blockquote>引擎<b>只负责判定和打分</b>：封号、拦截下单、限制发券这些动作要业务侧按返回的 <code>risk</code> 自己执行。</blockquote>
+  <div class="bl-nav">
+    <a href="#bl-ec">电商</a><a href="#bl-local">本地生活</a><a href="#bl-travel">出行</a><a href="#bl-health">大健康</a><a href="#bl-video">短视频</a><a href="#bl-live">直播</a><a href="#bl-workaround">配不出来的怎么变通</a><a href="#bl-roadmap">落地顺序</a>
+  </div>
+
+  <h4 id="bl-ec">9.1 电商</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>场景</th><th>指标 / 规则</th><th>要点</th></tr>
+    <tr><td>撞库、暴力登录</td><td>distinct <code>deviceId</code> by <code>userIP</code>，10 分钟 ≥3</td><td>本文主线场景</td></tr>
+    <tr><td>批量注册小号</td><td>distinct <code>userId</code> by <code>deviceId</code>，1 天 ≥5</td><td>用设备反查账号数</td></tr>
+    <tr><td>刷单、虚假交易</td><td>count 订单 by <code>userIP</code> 1 小时；sum <code>amount</code> by <code>userId</code> 1 天</td><td>金额字段要设成浮点</td></tr>
+    <tr><td>优惠券套利</td><td>号段（手机号截短 7 位）+ 手机号黑名单</td><td>虚拟运营商号段单列一张名单</td></tr>
+    <tr><td>支付盗刷</td><td>新设备登录 + 大额 <code>amount</code> + IP 归属地与常用地不一致</td><td>归属地靠 IP2LOCATION 插件</td></tr>
+  </table></div>
+
+  <h4 id="bl-local">9.2 本地生活</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>场景</th><th>指标 / 规则</th><th>要点</th></tr>
+    <tr><td>到店核销套现</td><td>count 核销 by <code>deviceId</code> 1 天；distinct <code>userId</code> by <code>storeId</code></td><td>店端、用户端各配一个指标</td></tr>
+    <tr><td>刷好评 / 恶意差评</td><td>count 评价 by <code>userIP</code> 1 小时；名单命中直接 reject</td><td>差评可加"历史零消费"条件</td></tr>
+    <tr><td>骑手刷单</td><td>distinct <code>userId</code> by 骑手 <code>staffId</code> 1 天</td><td>一个骑手挂多账号</td></tr>
+    <tr><td>优惠券薅羊毛</td><td>设备/号段聚集 + 名单</td><td>先名单后频次，成本最低</td></tr>
+  </table></div>
+
+  <h4 id="bl-travel">9.3 出行</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>场景</th><th>指标 / 规则</th><th>要点</th></tr>
+    <tr><td>虚假行程骗补贴</td><td>count 完单 by <code>driverId</code> 1 小时；distinct <code>passengerId</code> by <code>driverId</code> 1 天</td><td>刷单必然是"少数乘客高频"</td></tr>
+    <tr><td>黄牛抢票</td><td>distinct <code>userId</code> by <code>deviceId</code> 1 天；count 下单 by <code>userIP</code> 10 分钟</td><td>抢票要压到分钟级窗口</td></tr>
+    <tr><td>账号盗用（异地）</td><td>IP 归属地 ≠ 手机号归属地 + 新设备</td><td>两个归属地都是预处理产物</td></tr>
+    <tr><td>恶意取消 / 投诉</td><td>count 取消 by <code>userId</code> 1 天</td><td>配合策略分档，别一刀切</td></tr>
+  </table></div>
+
+  <h4 id="bl-health">9.4 大健康</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>场景</th><th>指标 / 规则</th><th>要点</th></tr>
+    <tr><td>医保 / 商保欺诈</td><td>count 就诊 by <code>userId</code> 1 周；distinct <code>hospitalId</code> by <code>userId</code></td><td>短时间跨多家机构最典型</td></tr>
+    <tr><td>药品囤积转卖</td><td>sum <code>quantity</code> by <code>userId</code> 7 天</td><td>数量字段用整型或浮点</td></tr>
+    <tr><td>虚假问诊刷单</td><td>distinct <code>patientId</code> by <code>doctorId</code> 1 天；同 IP 多患者</td><td>医生端看患者数，患者端看 IP</td></tr>
+    <tr><td>黑医生 / 黑机构 / 失信手机号</td><td>名单 + 规则直接 reject</td><td>合规敏感，只做名单与频次，不落原文</td></tr>
+  </table></div>
+
+  <h4 id="bl-video">9.5 短视频</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>场景</th><th>指标 / 规则</th><th>要点</th></tr>
+    <tr><td>刷播放 / 刷点赞</td><td>distinct <code>userId</code> by <code>deviceId</code> 1 天；count 互动 by <code>userIP</code> 10 分钟</td><td>一台设备几十个号最典型</td></tr>
+    <tr><td>批量养号</td><td>distinct <code>userId</code> by <code>deviceId</code>；设备 ID 黑名单</td><td>与"注册"共用一条规则</td></tr>
+    <tr><td>评论灌水 / 导流</td><td>count 评论 by <code>userId</code> 10 分钟；关键词走名单</td><td>文本内容建议业务侧先打标成字段</td></tr>
+    <tr><td>创作者激励套现</td><td>sum <code>reward</code> by <code>withdrawAccount</code> 7 天</td><td>提现账号维度更准</td></tr>
+  </table></div>
+
+  <h4 id="bl-live">9.6 直播</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>场景</th><th>指标 / 规则</th><th>要点</th></tr>
+    <tr><td>虚假人气</td><td>distinct <code>userId</code> by <code>roomId</code> 1 分钟；同 IP 聚集</td><td>窗口越小越能抓机器粉</td></tr>
+    <tr><td>打赏洗钱 / 大额异常</td><td>sum <code>giftAmount</code> by <code>userId</code> 1 小时；单笔大额直接 reject</td><td>大额单独一条规则，别混进频次</td></tr>
+    <tr><td>红包 / 福袋薅羊毛</td><td>count 领取 by <code>deviceId</code> 1 天；号段黑名单</td><td>活动期临时收紧阈值</td></tr>
+    <tr><td>互动黑产</td><td>名单（账号/设备/IP）+ 频次规则</td><td>名单热更新，无需重启</td></tr>
+  </table></div>
+
+  <h4 id="bl-workaround">9.7 配不出来的需求，怎么变通</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>需求</th><th>为什么不行</th><th>变通</th></tr>
+    <tr><td>多键联合滑窗（user + device + ip 同时限定）</td><td>搜索字段只能一个等值条件</td><td>每个键各配一个抽象，规则里用 <code>All</code> 组合</td></tr>
+    <tr><td>团伙 / 图谱关联</td><td>没有图存储，只能数"不同值有几个"</td><td>用 distinct count 近似（同 IP 关联账号数、同设备关联用户数）</td></tr>
+    <tr><td>行为序列（N 分钟内先注册后下单）</td><td>抽象是聚合值，不保存事件顺序</td><td>两个窗口差值近似，或业务侧打标成字段后判断</td></tr>
+    <tr><td>名单正则 / 号段前缀匹配</td><td>名单是精确字符串比对</td><td>先用「字符串截短」预处理，再拿截短结果入名单</td></tr>
+    <tr><td>黑产库自动同步</td><td>只能页面导入或接口导入</td><td>调 <code>POST /services/v1/datalist/batchImportData</code>（≤1000 条/次）定时推</td></tr>
+    <tr><td>实时外部特征（征信、设备指纹）</td><td>只有同步 HTTP 插件</td><td>接受同步延迟，或用离线补数 + 缓存表</td></tr>
+  </table></div>
+
+  <h4 id="bl-roadmap">9.8 从 0 到 1 的落地顺序</h4>
+  <p><b>① 先上名单</b>：设备、手机号、IP 是最便宜的一层，0 计算成本，命中即 reject。<br>
+  <b>② 再选 3~5 个指标</b>：覆盖注册、登录、下单、支付、提现这 5 个关键动作，每个都用"单键 × 单窗口"，别贪多。<br>
+  <b>③ 每指标配两档</b>：先只开 <code>review</code> 观察，确认误杀率后放开 <code>reject</code>。<br>
+  <b>④ 跑 1~2 周再看组合</b>：稳定后再做多键组合与更细的分档。</p>
+</section>
+
+<!-- ===== 10 配完不生效？排查顺序 ===== -->
+<section id="s10">
+  <div class="eyebrow"><span class="st">排障</span><span class="dim">按顺序查，先别改配置</span></div>
+  <h3><span class="chap">10</span>配完不生效？排查顺序</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>症状</th><th>先查</th><th>再查</th></tr>
+    <tr><td>score 永远 0、全 pass</td><td>字段名和 JSON key 是否一字不差</td><td>抽象的搜索/函数字段是否配反；事件是否真的写进 Mongo（查 <code>entity_&lt;模型ID&gt;</code> 条数）</td></tr>
+    <tr><td>抽象值全 0（1 天有值、短窗口为 0）</td><td><b>eventId 是否重复</b>（重复则不入库，当前事件查不到）</td><td>换新 eventId 重发；用 <code>mongosh</code> 数一下 <code>entity_&lt;ID&gt;</code> 里该 IP 的实际条数</td></tr>
+    <tr><td>分数有了但决策不对</td><td>警戒/拒绝值填反（40 应小于 80）</td><td>规则的比较符/阈值</td></tr>
+    <tr><td>配置改了行为没变</td><td>策略行开关是否开</td><td>引擎日志有没有收到配置推送（<code>grep "publish model" engine.log</code>）</td></tr>
+    <tr><td>多策略打架</td><td>是否有两个策略同时开</td><td>同一模型同时只 ACTIVE 一个</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== A 出处 / 溯源 ===== -->
+<div class="part">
+  <div class="pno">APPENDIX</div>
+  <div class="pt">附录</div>
+  <div class="pd">结论、配置与截图的出处，便于核对与二次溯源。</div>
+</div>
+
+<section id="sA">
+  <span class="alias" id="s11"></span>
+  <div class="eyebrow"><span class="st">附录</span><span class="dim">结论与配置的出处，便于核对与二次溯源</span></div>
+  <h3><span class="chap">A</span>出处 / 溯源</h3>
+  <div class="tbl-wrap"><table>
+    <tr><th>内容</th><th>来自</th></tr>
+    <tr><td>打分公式（初始分 + 规则累加 vs 40/80）</td><td><code>radar-service-impl/.../engine/AntiFraudEngineImpl.java</code></td></tr>
+    <tr><td>抽象 → Mongo distinct 查询形态</td><td><code>engine_abstraction</code> 表 + 引擎抽象查询实现</td></tr>
+    <tr><td>本例真实配置</td><td>抽象 <code>log_did_ip_10_min_qty</code>（ID 556）+ 规则 <code>rule_did_ip_10min_ge3</code>（ID 442），配在模型 236 策略「登录异常」，§8 curl 为实测</td></tr>
+    <tr><td>数据流转图</td><td><code>docs/radar-data-flow.md</code></td></tr>
+    <tr><td>截图</td><td><code>docs/screenshots/</code>，取自 2026-10-09 真实后台（模型 236）</td></tr>
+  </table></div>
+</section>
+
+<div class="foot">风控引擎管理平台 · 模型配置操作手册 · 截图取自真实后台（模型 236）</div>
+</div>
+</div>
+
+<div id="viewer"><img id="viewer-img" src="" alt="预览"></div>
+<div id="bar"></div>
+<div id="totop" title="回到顶部">↑</div>
+
+<script>
+(function () {
+  // 点图放大
+  var viewer = document.getElementById('viewer');
+  var vimg = document.getElementById('viewer-img');
+  document.querySelectorAll('.img-wrap img').forEach(function (img) {
+    img.addEventListener('click', function () {
+      vimg.src = img.src;
+      viewer.style.display = 'flex';
+    });
+  });
+  viewer.addEventListener('click', function () { viewer.style.display = 'none'; });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') viewer.style.display = 'none'; });
+
+  // 代码块一键复制
+  document.querySelectorAll('pre').forEach(function (pre) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy';
+    btn.textContent = '复制';
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var code = pre.querySelector('code');
+      var text = (code || pre).innerText.replace(/\s+$/, '');
+      var done = function () {
+        btn.textContent = '已复制';
+        btn.classList.add('done');
+        setTimeout(function () { btn.textContent = '复制'; btn.classList.remove('done'); }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { btn.textContent = '复制失败'; });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (err) { btn.textContent = '复制失败'; }
+        document.body.removeChild(ta);
+      }
+    });
+    pre.appendChild(btn);
+  });
+
+  // 目录高亮
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var secs = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+  var bar = document.getElementById('bar');
+  var totop = document.getElementById('totop');
+
+  function onScroll() {
+    var y = window.scrollY, h = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = (h > 0 ? (y / h) * 100 : 0) + '%';
+    totop.classList.toggle('on', y > 600);
+
+    var probe = y + 140, idx = 0;
+    secs.forEach(function (s, i) { if (s && s.offsetTop <= probe) idx = i; });
+    if (y + window.innerHeight >= document.documentElement.scrollHeight - 4) idx = secs.length - 1;
+    links.forEach(function (a, i) { a.classList.toggle('active', i === idx); });
+
+    // 目录跟随滚动，高亮项始终可见
+    var cur = links[idx];
+    if (cur) {
+      var toc = document.getElementById('toc');
+      var top = cur.offsetTop, bottom = top + cur.offsetHeight;
+      if (top < toc.scrollTop + 40) toc.scrollTop = Math.max(0, top - 60);
+      else if (bottom > toc.scrollTop + toc.clientHeight - 20) toc.scrollTop = bottom - toc.clientHeight + 40;
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 回到顶部
+  totop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  // 站内锚点：避免标题被顶栏遮住
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    if (a.closest('#toc')) return;
+    a.addEventListener('click', function (e) {
+      var el = document.getElementById(a.getAttribute('href').slice(1));
+      if (!el) return;
+      e.preventDefault();
+      var top = el.getBoundingClientRect().top + window.scrollY - 70;
+      window.scrollTo({ top: top, behavior: 'smooth' });
+      history.replaceState(null, '', a.getAttribute('href'));
+    });
+  });
+
+  // 深链（带 #锚点打开）：图片加载后校正落点
+  window.addEventListener('load', function () {
+    if (!location.hash) return;
+    var el = document.getElementById(location.hash.slice(1));
+    if (!el) return;
+    setTimeout(function () {
+      var top = el.getBoundingClientRect().top + window.scrollY - 70;
+      window.scrollTo({ top: top, behavior: 'auto' });
+    }, 150);
+  });
+
+})();
+</script>
+</body>
+</html>
