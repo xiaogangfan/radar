@@ -1,24 +1,51 @@
-/note.txt
-/radar-admin/target
-/radar-commons/target
-/radar-dal/target
-/radar-dao/target
-/radar-engine/target
-/radar-service/target
-/radar-service-impl/target
-.idea
-/*.iml
+# ============================================================
+# Radar 仓库忽略规则
+# ============================================================
+
+# ---- 操作系统 / 编辑器 ----
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 *.iml
-/radar-admin/radar-admin.iml
-/radar-commons/radar-commons.iml
-/radar-dal/radar-dal.iml
-/radar-dao/radar-dao.iml
-/radar-engine/radar-engine.iml
-/radar-service/radar-service.iml
-/radar-service-impl/radar-service-impl.iml
-webapp/node_modules/
+*.ipr
+*.iws
 .project
-.settings
+.settings/
 .classpath
 .factorypath
-/radar-kafka-demo/target/
+
+# ---- 本地 AI / 工具缓存（非项目文件）----
+.codegraph/
+.workbuddy/
+
+# ---- 构建产物 ----
+**/target/
+target/
+webapp/node_modules/
+node_modules/
+
+# ---- 运行时产物：日志 / 工作目录 ----
+workdir/
+**/logs/
+*.log
+
+# ---- 临时文件 / 备份 ----
+backup/
+*.bak
+*.bkp
+*.orig
+*.tmp
+1nls
+/note.txt
+**/.$*
+
+# ---- 压测产物（jmeter 运行结果，体积大且可再生）----
+jmeter/run/
+*.jtl
+
+# ---- 大体积媒体（视频/录屏不入库，由脚本按需重新生成）----
+*.mp4
+*.mov
+*.webm
