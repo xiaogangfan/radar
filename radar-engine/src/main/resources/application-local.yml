@@ -3,7 +3,7 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/radar
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/radar?useUnicode=true&characterEncoding=UTF-8&serverTimezone=GMT%2B8&useSSL=false
+    url: jdbc:mysql://127.0.0.1:3306/radar?useUnicode=true&characterEncoding=UTF-8&serverTimezone=GMT%2B8&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 456132
   redis:
@@ -14,10 +14,10 @@ spring:
 
 mobile:
   info:
-    path: d:/radar/moble_info.csv #手机号码归属地文件
+    path: /Users/happy/Code/sandbox/radar/resources/moble_info.csv #手机号码归属地文件
 ip2region:
   db:
-    path: d:/radar/ip2region.db #IP地址库文件
+    path: /Users/happy/Code/sandbox/radar/resources/ip2region.db #IP地址库文件
 elasticsearch:
   ip: 127.0.0.1
   port: 9300
@@ -32,7 +32,14 @@ sys:
     app: engine # admin 或者 engine， 根据启动的项目名称进行选择
     entity-duplicate-insert: false # 事件是否允许重复插入
     mongo-restore-days: 3650 # 事件保存时间，默认3个月
-    workdir: d:/radar #   工作目录
+    workdir: /Users/happy/Code/sandbox/radar/workdir #   工作目录
     machine-learning: true # 是否启用 机器学习
 server:
   port: 6581
+
+# 日志：Redis 断连时 lettuce 会每秒刷几十行 reconnect 警告，
+# 无人看管十几小时就能写出上百 GB 把磁盘撑爆（2026-10-10 事故）。
+logging:
+  level:
+    io.lettuce: ERROR
+    io.lettuce.core.protocol.ConnectionWatchdog: 'OFF'

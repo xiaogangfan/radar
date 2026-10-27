@@ -1,6 +1,10 @@
 spring:
   profiles:
     active: @profileActive@
+  autoconfigure:
+    # Groovy 2.4 无法在 JDK 9+ 上初始化 MarkupTemplateEngine，
+    # 本项目模板用 Thymeleaf，排除该自动配置即可
+    exclude: org.springframework.boot.autoconfigure.groovy.template.GroovyTemplateAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
@@ -50,3 +54,7 @@ logging:
     org.elasticsearch.client: debug
 server:
   port: 6580
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true

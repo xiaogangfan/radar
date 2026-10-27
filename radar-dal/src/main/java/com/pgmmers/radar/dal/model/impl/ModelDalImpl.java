@@ -259,6 +259,15 @@ public class ModelDalImpl implements ModelDal {
         if (!StringUtils.isEmpty(query.getMerchantCode())) {
             criteria.andEqualTo("code", query.getMerchantCode());
         }
+        if (!StringUtils.isEmpty(query.getBusinessLine())) {
+            criteria.andEqualTo("businessLine", query.getBusinessLine());
+        }
+        if (query.getSceneId() != null) {
+            criteria.andEqualTo("sceneId", query.getSceneId());
+        }
+        if (Boolean.TRUE.equals(query.getOnlyUnclassified())) {
+            criteria.andIsNull("sceneId");
+        }
         List<ModelPO> list = modelMapper.selectByExample(example);
         Page<ModelPO> page = (Page<ModelPO>) list;
         List<ModelVO> listVO;

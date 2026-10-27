@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: radar-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 456132
+      MYSQL_DATABASE: radar
+    ports:
+      - "3306:3306"
+    volumes:
+      - radar-mysql:/var/lib/mysql
+      - ./sql/radar-init.sql:/docker-entrypoint-initdb.d/01-radar-init.sql:ro
+      - ./docker/mysql-charset.cnf:/etc/mysql/conf.d/zz-charset.cnf:ro
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--sql-mode="]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p456132 --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mongodb:
+    image: mongo:7
+    container_name: radar-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - radar-mongodb:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: radar-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - radar-redis:/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.26
+    container_name: radar-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - radar-elasticsearch:/usr/share/elasticsearch/data
+
+volumes:
+  radar-mysql:
+  radar-mongodb:
+  radar-redis:
+  radar-elasticsearch:

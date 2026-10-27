@@ -1,0 +1,31 @@
+{
+  "title": "Radar 关系数据库结构",
+  "pageWidth": 1500,
+  "pageHeight": 1000,
+  "nodes": [
+    {"id":"users","label":"users\n用户 / 商户","x":40,"y":60,"width":180,"height":70,"style":"external"},
+    {"id":"model","label":"engine_model\n模型主表","x":300,"y":60,"width":190,"height":70,"style":"primary"},
+    {"id":"field","label":"engine_field\n事件字段与校验","x":40,"y":210,"width":190,"height":70,"style":"data"},
+    {"id":"pre","label":"engine_pre_item\n预处理插件","x":300,"y":210,"width":190,"height":70,"style":"data"},
+    {"id":"abs","label":"engine_abstraction\n统计抽象","x":560,"y":60,"width":200,"height":70,"style":"primary"},
+    {"id":"activation","label":"engine_activation\n分层阈值","x":830,"y":60,"width":200,"height":70,"style":"primary"},
+    {"id":"rule","label":"engine_rule\n规则定义","x":1100,"y":60,"width":190,"height":70,"style":"risk"},
+    {"id":"history","label":"engine_rule_history\n规则变更历史","x":1100,"y":210,"width":190,"height":70,"style":"data"},
+    {"id":"lists","label":"engine_data_lists\n黑白名单","x":560,"y":300,"width":200,"height":70,"style":"primary"},
+    {"id":"meta","label":"engine_data_list_meta\n名单字段元数据","x":830,"y":300,"width":200,"height":70,"style":"data"},
+    {"id":"records","label":"engine_data_list_records\n名单值 / 备注","x":1100,"y":300,"width":200,"height":70,"style":"data"},
+    {"id":"mobile","label":"data_moble_info\n手机号归属地","x":40,"y":430,"width":190,"height":70,"style":"external"}
+  ],
+  "edges": [
+    {"source":"users","target":"history","label":"CODE / 操作人"},
+    {"source":"model","target":"field","label":"MODEL_ID"},
+    {"source":"model","target":"pre","label":"MODEL_ID"},
+    {"source":"model","target":"abs","label":"MODEL_ID"},
+    {"source":"model","target":"activation","label":"MODEL_ID"},
+    {"source":"model","target":"lists","label":"MODEL_ID"},
+    {"source":"activation","target":"rule","label":"ACTIVATION_ID"},
+    {"source":"rule","target":"history","label":"RULE_ID"},
+    {"source":"lists","target":"meta","label":"DATA_LIST_ID"},
+    {"source":"lists","target":"records","label":"DATA_LIST_ID"}
+  ]
+}

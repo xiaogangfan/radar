@@ -6,9 +6,12 @@ import com.mongodb.client.model.IndexModel;
 import com.mongodb.client.model.IndexOptions;
 import com.pgmmers.radar.dal.bean.ModelQuery;
 import com.pgmmers.radar.dal.bean.PageResult;
+import com.pgmmers.radar.dal.dimension.SceneDal;
 import com.pgmmers.radar.dal.model.ModelDal;
+import com.pgmmers.radar.enums.BusinessLineType;
 import com.pgmmers.radar.enums.FieldType;
 import com.pgmmers.radar.enums.StatusType;
+import com.pgmmers.radar.model.ScenePO;
 import com.pgmmers.radar.service.cache.CacheService;
 import com.pgmmers.radar.service.cache.SubscribeHandle;
 import com.pgmmers.radar.service.common.CommonResult;
@@ -46,6 +49,9 @@ public class ModelServiceImpl extends BaseLocalCacheService implements ModelServ
 
     @Autowired
     private ModelDal modelDal;
+
+    @Autowired
+    private SceneDal sceneDal;
 
     @Autowired
     private CacheService cacheService;
@@ -115,8 +121,45 @@ public class ModelServiceImpl extends BaseLocalCacheService implements ModelServ
     public CommonResult query(ModelQuery query) {
         CommonResult result = new CommonResult();
         result.setSuccess(true);
-        result.getData().put("page", modelDal.query(query));
+        PageResult<ModelVO> page = modelDal.query(query);
+        fillDimensionNames(page.getList());
+        result.getData().put("page", page);
         return result;
+    }
+
+    /**
+     * 列表补名：sceneName 批量查库填，businessLineName 走枚举，不查库
+     */
+    private void fillDimensionNames(List<ModelVO> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        Set<Long> sceneIds = list.stream()
+                .map(ModelVO::getSceneId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, ScenePO> sceneMap = new HashMap<>();
+        if (!sceneIds.isEmpty()) {
+            for (ScenePO po : sceneDal.listByIds(new ArrayList<>(sceneIds))) {
+                sceneMap.put(po.getId(), po);
+            }
+        }
+        for (ModelVO vo : list) {
+            if (vo.getSceneId() != null) {
+                ScenePO po = sceneMap.get(vo.getSceneId());
+                if (po != null) {
+                    vo.setSceneName(po.getName());
+                    // 场景为准回填业务线，规避双列脏数据
+                    vo.setBusinessLine(po.getBusinessLine());
+                }
+            }
+            if (StringUtils.isNotEmpty(vo.getBusinessLine())) {
+                BusinessLineType type = BusinessLineType.of(vo.getBusinessLine());
+                if (type != null) {
+                    vo.setBusinessLineName(type.getName());
+                }
+            }
+        }
     }
 
     @Override
@@ -137,12 +180,51 @@ public class ModelServiceImpl extends BaseLocalCacheService implements ModelServ
             }
         }
         if (model.getId() == null) {
+            // engine_model 的事件三字段 + modelName 都是 NOT NULL 无默认值，
+            // insertSelective 会跳过 null 直接报缺字段错——必须前置占位，否则首次 insert 就炸，
+            // 后面的 "model{id}" fallback 永远走不到
+            if (StringUtils.isEmpty(model.getModelName())) {
+                model.setModelName("model");
+            }
+            if (StringUtils.isEmpty(model.getEntityName())) {
+                model.setEntityName("entity");   // 占位，编辑时补
+            }
+            if (StringUtils.isEmpty(model.getEntryName())) {
+                model.setEntryName("entry");
+            }
+            if (StringUtils.isEmpty(model.getReferenceDate())) {
+                model.setReferenceDate("eventTime");
+            }
             model.setStatus(StatusType.INIT.getKey());
             model.setGuid(UUID.randomUUID().toString().toUpperCase());
         }
+        // 归属校验：新建必填；编辑时提供了才校验（存量未分类模型启停/编辑放行）
+        boolean hasScene = model.getSceneId() != null;
+        boolean hasLine = StringUtils.isNotEmpty(model.getBusinessLine());
+        if (model.getId() == null || hasScene || hasLine) {
+            if (!hasScene || !hasLine) {
+                result.setMsg("请选择业务线和场景");
+                return result;
+            }
+            ScenePO scene = sceneDal.getById(model.getSceneId());
+            if (scene == null) {
+                result.setMsg("场景不存在");
+                return result;
+            }
+            if (!scene.getBusinessLine().equals(model.getBusinessLine())) {
+                result.setMsg("场景不属于该业务线");
+                return result;
+            }
+            if (model.getId() == null && scene.getStatus() != 1) {
+                // 仅新建校验启用态；编辑允许保留已停用的归属
+                result.setMsg("场景已停用");
+                return result;
+            }
+        }
         int count = modelDal.save(model);
         if (count > 0) {
-            if (StringUtils.isEmpty(model.getModelName())) {
+            if ("model".equals(model.getModelName())) {
+                // 占位 → 用真实 id 校正
                 model.setModelName("model" + model.getId());
                 modelDal.save(model);
             }

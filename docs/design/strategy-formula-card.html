@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>策略管理 · 规则得分算式（设计稿 v1）</title>
+<style>
+:root{
+  --blue:#1890ff; --blue-0:#f0f8ff; --blue-1:#e6f7ff; --blue-2:#bae7ff; --blue-3:#0050b3;
+  --t1:#262626; --t2:#595959; --t3:#8c8c8c; --t4:#bfbfbf;
+  --line:#f0f0f0; --line2:#d9d9d9; --bg:#f0f2f5;
+  --green:#52c41a; --green-1:#f6ffed; --green-2:#b7eb8f;
+  --amber:#faad14; --amber-1:#fffbe6; --amber-2:#ffe58f; --amber-3:#ffd591;
+  --red:#ff4d4f; --red-1:#fff1f0; --red-2:#ffa39e;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--bg);color:var(--t1);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;}
+svg{display:block;}
+.num{font-variant-numeric:tabular-nums;}
+
+/* ---------------- app chrome ---------------- */
+.app{display:flex;min-height:100vh;align-items:stretch;}
+.side{width:220px;flex:0 0 220px;background:#fff;border-right:1px solid var(--line);padding:10px 0 24px;}
+.side-head{display:flex;align-items:center;justify-content:space-between;padding:4px 14px 10px;}
+.side-head b{font-size:13px;font-weight:600;}
+.side-head button{font-size:12px;color:var(--t3);border:1px solid var(--line2);border-radius:2px;padding:1px 6px;}
+.side-head button:hover{color:var(--blue);border-color:var(--blue-2);}
+.tree-all{display:flex;justify-content:space-between;padding:6px 14px;font-size:13px;color:var(--t2);background:#fafafa;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.tree-g{padding:2px 0;}
+.tree-g>.row{display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:13px;color:var(--t2);}
+.tree-g>.row .cnt{margin-left:auto;color:var(--t4);font-size:12px;}
+.tree-g>.row .car{width:10px;color:var(--t4);font-size:10px;transform:rotate(90deg);}
+.tree-i{display:flex;align-items:center;padding:4px 14px 4px 34px;font-size:13px;color:var(--t2);gap:6px;cursor:default;}
+.tree-i .dot{width:4px;height:4px;border-radius:50%;background:var(--t4);}
+.tree-i .cnt{margin-left:auto;color:var(--t4);font-size:12px;}
+.tree-i:hover{background:#fafafa;}
+.tree-i.active{background:var(--blue-1);color:var(--blue);}
+.tree-i.active .dot{background:var(--blue);}
+
+.main{flex:1;min-width:0;padding:10px 24px 60px;}
+.wrap{max-width:1010px;margin:0 auto;}
+
+.crumb{font-size:13px;color:var(--t3);padding:6px 0 14px;}
+.crumb em{font-style:normal;color:var(--t2);}
+
+.model-head{display:flex;align-items:center;gap:14px;padding-bottom:14px;}
+.model-head .mt{font-size:14px;color:var(--t2);}
+.model-head .mt b{color:var(--t1);font-weight:600;}
+.model-head .time{font-size:12px;color:var(--t3);margin-left:10px;}
+.model-head .right{margin-left:auto;display:flex;align-items:center;gap:14px;}
+.btn-primary{background:var(--blue);color:#fff;height:32px;padding:0 16px;border-radius:2px;font-size:14px;}
+.btn-primary:hover{background:#40a9ff;}
+
+.switch{width:36px;height:20px;border-radius:10px;background:var(--blue);position:relative;display:inline-block;flex:0 0 auto;}
+.switch::after{content:"";position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;}
+.switch.off{background:var(--t4);}
+.switch.off::after{left:2px;}
+
+.tabs{display:flex;gap:26px;border-bottom:1px solid var(--line);}
+.tab{display:flex;align-items:center;gap:6px;padding:10px 2px 12px;font-size:14px;color:var(--t2);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab svg{opacity:.75;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab.active svg{opacity:1;}
+
+/* ---------------- strategy card ---------------- */
+.panel{margin-top:16px;}
+.strategy{background:#fff;border:1px solid var(--line);border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+.s-head{display:flex;align-items:center;gap:16px;padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fafcff,#fff);}
+.s-name{font-size:16px;font-weight:600;}
+.s-tag{font-size:12px;color:var(--blue);background:var(--blue-1);border:1px solid var(--blue-2);border-radius:2px;padding:0 6px;line-height:18px;}
+.s-meta{font-size:12px;color:var(--t3);margin-left:2px;}
+.s-right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.ruler-wrap{position:relative;width:330px;}
+.ruler{height:8px;border-radius:4px;position:relative;overflow:hidden;
+  background:linear-gradient(90deg,#d9f7be 0 26.67%,#fff1b8 26.67% 53.33%,#ffccc7 53.33% 100%);}
+.ruler .tk{position:absolute;top:-4px;width:1px;height:16px;background:rgba(0,0,0,.28);}
+.ruler .pt{position:absolute;top:-3px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--blue);transform:translateX(-7px);box-shadow:0 1px 3px rgba(0,0,0,.18);}
+.ruler .pt::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--blue);}
+.ruler-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-top:4px;position:relative;height:15px;}
+.ruler-lbl span{position:absolute;transform:translateX(-50%);white-space:nowrap;}
+.s-legend{font-size:12px;color:var(--t3);}
+.s-legend b{color:var(--t2);font-weight:500;}
+
+.s-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);}
+.s-bar .lb{font-size:13px;color:var(--t2);flex:0 0 auto;}
+.s-bar .ipt{height:30px;border:1px solid var(--line2);border-radius:2px;flex:1;background:#fff;display:flex;align-items:center;padding:0 10px;color:var(--t4);font-size:13px;}
+.s-bar .btn-primary{height:30px;font-size:13px;padding:0 14px;}
+.s-bar .tip{margin-left:auto;font-size:12px;color:var(--t3);display:flex;align-items:center;gap:6px;}
+.s-bar .tip i{width:5px;height:5px;border-radius:50%;background:var(--blue);display:inline-block;}
+
+.rules{padding:6px 0 10px;}
+.rule{display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid #f5f5f5;position:relative;cursor:pointer;}
+.rule:last-child{border-bottom:none;}
+.rule:hover{background:#fafcff;}
+.rule-main{min-width:0;width:252px;flex:0 0 252px;}
+.rule-name{font-size:14px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rule-cond{font-size:11px;color:var(--t3);margin-top:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ---- the core: formula pill ---- */
+.rule-formula{flex:1;min-width:0;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;}
+.pill{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 9px;background:#fafafa;
+  border:1px solid var(--line);border-radius:4px;font-size:13px;white-space:nowrap;position:relative;flex:0 0 auto;
+  transition:border-color .15s,background .15s,box-shadow .15s;}
+.pill:hover{border-color:var(--blue-2);background:var(--blue-0);box-shadow:0 2px 8px rgba(24,144,255,.12);}
+.pill .lb{font-size:12px;color:var(--t3);}
+.pill .eq{color:var(--t3);font-size:12px;}
+.pill .n{font-weight:600;letter-spacing:.2px;}
+.pill .o{color:var(--t3);}
+.pill .m{background:var(--blue-1);border:1px solid var(--blue-2);color:var(--blue-3);border-radius:2px;
+  padding:0 5px;line-height:19px;font-size:12px;max-width:132px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pill .m.solo{background:#f5f5f5;border-color:#e8e8e8;color:var(--t2);}
+.pill .warn-ico{color:var(--amber);display:flex;align-items:center;margin-left:1px;}
+.pill.warn{border-color:var(--amber-2);background:var(--amber-1);}
+.pill.warn:hover{border-color:var(--amber);background:#fffdf2;box-shadow:0 2px 8px rgba(250,173,20,.18);}
+
+.after{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
+.hint{font-size:12px;color:var(--t3);white-space:nowrap;}
+.hint b{color:var(--t1);font-weight:600;}
+.hint .u{color:var(--t4);margin:0 4px;}
+.hint.warn{color:#d46b08;}
+.hint.warn b{color:#d46b08;}
+.tag-risk{font-size:11px;line-height:17px;padding:0 6px;border-radius:2px;border:1px solid;white-space:nowrap;}
+.tag-pass{color:#389e0d;background:var(--green-1);border-color:var(--green-2);}
+.tag-review{color:#d46b08;background:var(--amber-1);border-color:var(--amber-2);}
+.tag-reject{color:#cf1322;background:var(--red-1);border-color:var(--red-2);}
+.tag-info{color:var(--t2);background:#fafafa;border-color:#e8e8e8;}
+
+/* mini ruler (variant C) */
+.mini{position:relative;width:124px;flex:0 0 auto;display:block;}
+.mini .track{display:block;width:124px;height:6px;border-radius:3px;position:relative;
+  background:linear-gradient(90deg,#d9f7be 0 26.67%,#fff1b8 26.67% 53.33%,#ffccc7 53.33% 100%);}
+.mini .pt{position:absolute;top:-3px;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--blue);transform:translateX(-6px);}
+.mini .tk{position:absolute;top:-2px;width:1px;height:10px;background:rgba(0,0,0,.22);}
+.mini .val{position:absolute;top:-19px;transform:translateX(-50%);font-size:11px;font-weight:600;color:var(--t1);}
+.mini .scale{display:flex;justify-content:space-between;font-size:10px;color:var(--t4);margin-top:3px;}
+
+.rule-actions{display:flex;align-items:center;gap:12px;margin-left:auto;padding-left:6px;}
+.icon-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--blue);border-radius:2px;}
+.icon-btn:hover{background:var(--blue-1);}
+
+/* ---- popover ---- */
+.pop{display:none;position:absolute;left:0;top:calc(100% + 8px);width:352px;background:#fff;
+  border:1px solid var(--line);border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.12);padding:12px 14px;z-index:40;
+  font-size:12px;color:var(--t2);text-align:left;white-space:normal;cursor:default;}
+.pill:hover .pop,.pill:focus-within .pop,.demo-pop .rule:first-child .pop{display:block;}
+.demo-pop-sum .scard .sumbox .pop{display:block;}
+.rule:nth-last-child(-n+2) .pop{top:auto;bottom:calc(100% + 8px);}
+.pop h5{margin:0 0 6px;font-size:12px;color:var(--t3);font-weight:500;letter-spacing:.4px;}
+.pop-f{font-size:14px;color:var(--t1);font-weight:600;letter-spacing:.2px;margin-bottom:2px;}
+.pop-v{font-size:11px;color:var(--t3);margin-bottom:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+.pop-tbl{width:100%;border-collapse:collapse;margin-bottom:10px;}
+.pop-tbl td{padding:3px 0;border-bottom:1px dashed #f0f0f0;font-size:12px;vertical-align:top;}
+.pop-tbl td:first-child{color:var(--t3);width:64px;}
+.pop-tbl td:nth-child(2){color:var(--t1);font-weight:600;width:74px;font-variant-numeric:tabular-nums;}
+.pop-tbl td:nth-child(3){color:var(--t3);font-size:11px;}
+.pop-eg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+.pop-eg span{font-size:11px;color:var(--t2);background:#fafafa;border:1px solid var(--line);border-radius:2px;padding:1px 6px;font-variant-numeric:tabular-nums;}
+.pop-note{font-size:11px;color:#d46b08;background:var(--amber-1);border:1px solid var(--amber-2);border-radius:2px;padding:5px 8px;line-height:1.6;}
+.pop-note.info{color:var(--blue-3);background:var(--blue-1);border-color:var(--blue-2);}
+
+.foot{padding:10px 16px;border-top:1px dashed var(--line);font-size:12px;color:var(--t3);display:flex;gap:18px;flex-wrap:wrap;}
+.foot b{color:var(--t2);font-weight:500;}
+
+/* ---- 策略总分公式 ---- */
+.sumbox{position:relative;text-align:right;background:#fcfdff;border:1px solid #e8f0fb;border-radius:4px;
+  padding:7px 11px 8px;cursor:default;transition:border-color .15s,background .15s,box-shadow .15s;}
+.sumbox:hover,.sumbox:focus-within{border-color:var(--blue-2);background:var(--blue-0);box-shadow:0 2px 10px rgba(24,144,255,.1);}
+.sum-main{font-size:13px;color:var(--t1);font-weight:500;white-space:nowrap;}
+.sum-main .lb{font-size:11px;color:var(--t3);font-weight:400;margin-right:6px;letter-spacing:.3px;}
+.sum-main .sig{color:var(--blue);font-weight:600;}
+.sum-sub{font-size:13px;color:var(--t3);margin-top:4px;white-space:nowrap;}
+.sum-sub b{color:#d46b08;font-weight:600;font-size:14px;}
+.sum-box sub,.sum-sub sub{font-size:9px;}
+.sumbox .pop{left:auto;right:0;top:calc(100% + 8px);width:452px;}
+.sumbox:hover .pop,.sumbox:focus-within .pop{display:block;}
+.sum-var{display:grid;grid-template-columns:26px 1fr 62px;gap:2px 6px;font-size:11px;color:var(--t2);padding:1px 0;}
+.sum-var i{font-style:normal;color:var(--blue-3);font-weight:600;}
+.sum-var em{font-style:normal;color:var(--t3);font-size:10px;text-align:right;}
+
+/* ---- 策略列表 ---- */
+.list-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:#fafafa;}
+.list-head .t{font-size:14px;font-weight:600;}
+.list-head .c{font-size:12px;color:var(--t3);}
+.list-head .tip{margin-left:auto;font-size:12px;color:var(--t3);}
+.scard{display:flex;align-items:center;gap:18px;padding:14px 16px;}
+.scard:hover{background:#fafcff;}
+.sc-idx{flex:0 0 18px;font-size:12px;color:var(--t3);}
+.sc-main{flex:0 0 270px;min-width:0;}
+.sc-name{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.sc-meta{font-size:12px;color:var(--t3);margin-top:5px;}
+.sc-sum{flex:1;display:flex;justify-content:flex-end;min-width:0;}
+.sc-ops{flex:0 0 auto;display:flex;align-items:center;gap:12px;margin-top:7px;}
+.link{font-size:12px;color:var(--blue);white-space:nowrap;}
+.link:hover{color:#40a9ff;text-decoration:underline;}
+.viewbar{display:flex;align-items:center;gap:8px;padding:0 2px 10px;}
+.back{font-size:12px;color:var(--t3);}
+.back:hover{color:var(--blue);}
+.viewbar .now{font-size:12px;color:var(--t4);}
+
+/* ---- 规则明细头部 ---- */
+.s-head{display:flex;align-items:flex-start;gap:20px;}
+.s-left{min-width:0;}
+.s-title{display:flex;align-items:center;gap:8px;}
+.s-band{display:flex;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid var(--line);background:#fafafa;}
+.s-band .ruler-wrap{flex:1;width:auto;}
+.s-band .s-legend{flex:0 0 auto;text-align:right;}
+.s-band .lb{flex:0 0 auto;font-size:12px;color:var(--t3);}
+
+/* variants */
+body[data-v="B"] .vA,body[data-v="B"] .vC{display:none!important;}
+body[data-v="C"] .vA,body[data-v="C"] .vB{display:none!important;}
+body[data-v="A"] .vB,body[data-v="A"] .vC{display:none!important;}
+
+/* design switcher */
+.dsgn{position:fixed;right:20px;bottom:20px;width:270px;background:#fff;border:1px solid var(--line);
+  border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.14);padding:12px 14px;z-index:100;}
+.dsgn .dt{font-size:12px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:6px;}
+.dsgn .dt em{font-style:normal;font-size:10px;color:#d46b08;background:var(--amber-1);border:1px solid var(--amber-2);border-radius:2px;padding:0 4px;line-height:15px;}
+.dsgn .seg{display:flex;margin-top:10px;border:1px solid var(--line2);border-radius:4px;overflow:hidden;}
+.dsgn .seg button{flex:1;height:30px;font-size:12px;color:var(--t2);border-right:1px solid var(--line2);}
+.dsgn .seg button:last-child{border-right:none;}
+.dsgn .seg button.on{background:var(--blue);color:#fff;}
+.dsgn .dd{font-size:11px;color:var(--t3);margin-top:8px;line-height:1.7;}
+
+/* ---- 规则编辑：左侧表单 + 右侧实时算式 ---- */
+.fhead{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);}
+.fhead .fname{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:640px;}
+.fhead-r{margin-left:auto;display:flex;align-items:center;gap:16px;}
+.fbody{display:flex;gap:24px;padding:18px 16px 20px;align-items:flex-start;}
+.fform{flex:1;min-width:0;max-width:512px;}
+.frow{display:grid;grid-template-columns:96px 1fr 16px;align-items:center;gap:8px;margin-bottom:14px;}
+.frow>label{font-size:13px;color:var(--t2);text-align:right;white-space:nowrap;}
+.frow>label i{color:var(--red);font-style:normal;margin-right:2px;}
+.fctl input,.fctl select{width:100%;height:32px;border:1px solid var(--line2);border-radius:2px;padding:0 10px;
+  font-size:13px;color:var(--t1);background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;}
+.fctl input:focus,.fctl select:focus{border-color:#40a9ff;box-shadow:0 0 0 2px rgba(24,144,255,.12);}
+.fctl input:disabled,.fctl select:disabled{background:#f5f5f5;color:var(--t4);cursor:not-allowed;}
+.help{width:15px;height:15px;border-radius:50%;border:1px solid var(--t4);color:var(--t4);font-size:10px;
+  display:flex;align-items:center;justify-content:center;line-height:1;}
+.addcond{display:inline-flex;align-items:center;gap:5px;color:var(--blue);font-size:13px;margin:4px 0 10px;padding-left:96px;}
+.condbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);padding:5px 8px;background:#fafafa;border:1px solid var(--line);border-radius:2px;}
+.condbar select{height:24px;border:1px solid var(--line2);border-radius:2px;font-size:12px;background:#fff;color:var(--t2);}
+.condbar .cx{color:var(--blue);cursor:default;}
+.condrow{display:flex;align-items:center;gap:6px;margin-top:8px;}
+.condrow .cell{height:30px;border:1px solid var(--line2);border-radius:2px;display:flex;align-items:center;padding:0 8px;font-size:12px;color:var(--t2);background:#fff;white-space:nowrap;overflow:hidden;}
+.condrow .cell.w1{width:104px;} .condrow .cell.w2{flex:1;min-width:0;}
+.condrow .cell.w3{width:96px;} .condrow .cell.w4{width:62px;justify-content:center;}
+.condrow .del{color:var(--t3);}
+
+.fprev{flex:0 0 430px;position:sticky;top:14px;background:#fcfdff;border:1px solid #e8f0fb;border-radius:4px;
+  padding:14px 16px 16px;box-shadow:0 1px 2px rgba(24,144,255,.04);}
+.pv-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.pv-head .t{font-size:13px;font-weight:600;color:var(--t1);}
+.pv-live{font-size:10px;color:#389e0d;background:var(--green-1);border:1px solid var(--green-2);border-radius:2px;line-height:16px;padding:0 5px;display:inline-flex;align-items:center;}
+.pv-live::before{content:"";width:5px;height:5px;border-radius:50%;background:#52c41a;margin-right:4px;}
+.pv-formula{color:var(--t1);}
+.fml{display:flex;flex-wrap:wrap;align-items:flex-start;column-gap:3px;row-gap:3px;}
+.fml-eq{font-size:13px;font-weight:600;color:var(--t1);line-height:26px;}
+.term{display:inline-flex;flex-direction:column;align-items:center;height:39px;}
+.term .val{height:26px;display:flex;align-items:center;font-variant-numeric:tabular-nums;}
+.term b{font-size:13px;font-weight:600;color:var(--t1);}
+.term em{font-style:normal;font-size:9.5px;line-height:11px;color:var(--t3);margin-top:1px;white-space:nowrap;}
+.term .osym{color:var(--t3);font-size:13px;}
+.sym{height:26px;display:flex;align-items:center;font-size:13px;color:var(--t3);padding:0 1px;}
+.pv-formula .m{display:inline-block;background:var(--blue-1);border:1px solid var(--blue-2);color:var(--blue-3);
+  border-radius:2px;padding:0 4px;line-height:20px;font-size:11px;font-weight:400;max-width:168px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cap{display:flex;flex-wrap:wrap;align-items:flex-start;column-gap:3px;row-gap:2px;font-size:12px;color:var(--t2);}
+.cap .cap-eq{line-height:26px;color:var(--t3);}
+.cap .raw{line-height:26px;color:var(--t1);font-weight:600;}
+.cap .fn{line-height:26px;color:#722ed1;font-weight:600;}
+.cap .tip{line-height:26px;font-size:11px;color:var(--t3);}
+.cap .term{height:39px;}
+.pv-sep{height:1px;background:var(--line);margin:13px 0 11px;}
+.pv-title{font-size:12px;color:var(--t3);margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.pv-title em{font-style:normal;font-size:10px;color:var(--t4);}
+.eg-row{display:flex;align-items:baseline;gap:6px;font-size:11px;color:var(--t2);padding:4px 0;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.eg-row .v{flex:0 0 52px;color:var(--t3);}
+.eg-row .calc{flex:1;min-width:0;color:var(--t2);overflow:hidden;text-overflow:ellipsis;}
+.eg-row .s{flex:0 0 auto;font-weight:600;color:var(--t1);}
+.eg-row .tag-risk{flex:0 0 auto;font-size:10px;line-height:15px;padding:0 5px;}
+
+.pv-note{font-size:11px;line-height:1.7;color:var(--t3);}
+.pv-note.warn{color:#d46b08;background:var(--amber-1);border:1px solid var(--amber-2);border-radius:2px;padding:6px 9px;}
+.pv-note.bad{color:#cf1322;background:var(--red-1);border:1px solid var(--red-2);border-radius:2px;padding:6px 9px;}
+.pv-note.ok{color:var(--blue-3);background:var(--blue-1);border:1px solid var(--blue-2);border-radius:2px;padding:6px 9px;}
+</style>
+</head>
+<body data-v="A">
+<div class="app">
+  <aside class="side">
+    <div class="side-head"><b>业务线/场景</b><button>刷新</button></div>
+    <div class="tree-all"><span>全部模型</span></div>
+    <div id="tree"></div>
+  </aside>
+
+  <div class="main">
+    <div class="wrap">
+      <div class="crumb">首页&nbsp;/&nbsp;模型&nbsp;“<em>电商-营销防刷</em>”</div>
+
+      <div class="model-head">
+        <div class="mt">模型：<b>电商-营销防刷-mter</b><span class="time">模型创建时间：2026-10-10 16:37:23</span></div>
+        <div class="right">
+          <span class="switch"></span>
+          <button class="btn-primary">构建模型</button>
+        </div>
+      </div>
+
+      <nav class="tabs" id="tabs"></nav>
+
+      <!-- ============ 视图一：策略列表（卡片右侧显示总分公式） ============ -->
+      <div class="panel" id="viewList">
+        <section class="strategy">
+          <div class="list-head">
+            <span class="t">策略列表</span>
+            <span class="c">1 个策略</span>
+            <span class="tip">右侧为策略总分公式，悬停查看展开式与算例</span>
+          </div>
+          <div class="scard" id="scard"></div>
+        </section>
+      </div>
+
+      <!-- ============ 视图二：规则明细（卡片右侧显示单条规则算式） ============ -->
+      <div class="panel" id="viewDetail" hidden>
+        <div class="viewbar">
+          <button class="back" id="backList">← 返回策略列表</button>
+          <span class="now">/ 策略管理 / 登录异常</span>
+        </div>
+        <section class="strategy">
+          <header class="s-head">
+            <div class="s-left">
+              <div class="s-title">
+                <span class="s-name">登录异常</span>
+                <span class="s-tag">启用中</span>
+              </div>
+              <div class="s-meta" style="margin-top:5px">6 条规则&nbsp;·&nbsp;警戒 40&nbsp;·&nbsp;拒绝 80</div>
+            </div>
+            <div id="sumDetail" style="margin-left:auto"></div>
+          </header>
+
+          <div class="s-band">
+            <span class="lb">总分</span>
+            <div class="ruler-wrap">
+              <div class="ruler">
+                <i class="tk" style="left:26.67%"></i>
+                <i class="tk" style="left:53.33%"></i>
+                <i class="pt" style="left:20%"></i>
+              </div>
+              <div class="ruler-lbl">
+                <span style="left:0;transform:none">0</span>
+                <span style="left:26.67%">40 警戒</span>
+                <span style="left:53.33%">80 拒绝</span>
+                <span style="left:100%;transform:translateX(-100%)">150+</span>
+              </div>
+            </div>
+            <div class="s-legend">示例：单条命中 <b>30 分</b> → 未达警戒，<br>需再命中 1 条才进入复核</div>
+          </div>
+
+          <div class="s-bar">
+            <span class="lb">显示名称：</span>
+            <div class="ipt">1天内IP关联用户数大于10</div>
+            <button class="btn-primary">新建</button>
+            <span class="tip"><i></i>右侧算式由该规则的 6 个字段实时生成</span>
+          </div>
+
+          <div class="rules" id="rules"></div>
+
+          <div class="foot">
+            <span>算式读法：<b>初始得分 + 命中基数 操作符 (指标值 × 比率%)</b></span>
+            <span>最大值 &gt; 0 时截断，<b>0 = 不封顶</b></span>
+            <span>总分 = <b>Σ 各条命中规则得分</b>（未命中记 0）</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============ 视图三：规则编辑（右侧实时算式预览） ============ -->
+      <div class="panel" id="viewForm" hidden>
+        <div class="viewbar">
+          <button class="back" id="backDetail">← 返回规则列表</button>
+          <span class="now">/ 策略管理 / 登录异常 / 编辑规则</span>
+        </div>
+        <section class="strategy">
+          <div class="fhead">
+            <span class="fname" id="fHead">1天内IP关联用户数大于10</span>
+            <div class="fhead-r">
+              <button class="icon-btn" title="规则明细">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+              </button>
+              <span class="switch"></span>
+            </div>
+          </div>
+
+          <div class="fbody">
+            <!-- 左：表单 -->
+            <div class="fform">
+              <div class="frow">
+                <label><i>*</i>显示名称：</label>
+                <div class="fctl"><input id="fName" value="1天内IP关联用户数大于10" /></div>
+                <span class="help">?</span>
+              </div>
+              <div class="frow">
+                <label><i>*</i>初始得分：</label>
+                <div class="fctl"><input id="fInit" type="number" value="20" /></div>
+                <span class="help">?</span>
+              </div>
+              <div class="frow">
+                <label><i>*</i>命中基数：</label>
+                <div class="fctl"><input id="fBase" type="number" value="1" /></div>
+                <span class="help">?</span>
+              </div>
+              <div class="frow">
+                <label>操作符：</label>
+                <div class="fctl">
+                  <select id="fOp">
+                    <option value="NONE">无</option>
+                    <option value="ADD">加</option>
+                    <option value="SUB">减</option>
+                    <option value="MUL" selected>乘</option>
+                    <option value="DIV">除</option>
+                  </select>
+                </div>
+                <span></span>
+              </div>
+              <div class="frow">
+                <label>指标字段：</label>
+                <div class="fctl">
+                  <select id="fMetric">
+                    <option>1天内IP关联用户数</option>
+                    <option>1天内IP关联设备数</option>
+                    <option>10分钟内IP登录次数</option>
+                    <option>1天内用户登录次数</option>
+                    <option>10分钟内IP关联设备数</option>
+                  </select>
+                </div>
+                <span></span>
+              </div>
+              <div class="frow">
+                <label><i>*</i>比率：</label>
+                <div class="fctl"><input id="fRate" type="number" value="100" /></div>
+                <span class="help">?</span>
+              </div>
+              <div class="frow">
+                <label><i>*</i>最大值：</label>
+                <div class="fctl"><input id="fMax" type="number" value="0" /></div>
+                <span class="help">?</span>
+              </div>
+
+              <div class="addcond">＋ 添加过滤条件</div>
+
+              <div class="condbar">
+                <select><option>All</option></select>
+                <span>条件成</span>
+                <span class="cx">＋ 简单</span>
+                <span class="cx">＋ 复杂</span>
+              </div>
+              <div class="condrow">
+                <div class="cell w1">抽象字段 ▾</div>
+                <div class="cell w2">1天内IP关联用户数</div>
+                <div class="cell w3">大于等于 ▾</div>
+                <div class="cell w4">10</div>
+                <div class="del">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"></path></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右：实时算式 -->
+            <aside class="fprev" id="fprev"></aside>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dsgn">
+  <div class="dt">设计稿 v1.3 · 编辑表单实时算式 <em>仅供评审</em></div>
+  <div class="seg" id="seg">
+    <button data-v="A" class="on">方案 A</button>
+    <button data-v="B">方案 B</button>
+    <button data-v="C">方案 C</button>
+  </div>
+  <div class="dd" id="dd">A：算式 + 命中下限，信息最省，默认态推荐</div>
+</div>
+
+<script>
+/* ================= 数据：model 236 / strategy 125 真实配置 ================= */
+var OP_NAME = {NONE:'无', ADD:'加', SUB:'减', MUL:'乘', DIV:'除'};
+var OP_DESC = {NONE:'指标不参与运算', ADD:'基数 + 指标', SUB:'基数 − 指标', MUL:'基数 × 指标', DIV:'基数 ÷ 指标'};
+var OP_SYM  = {ADD:'+', SUB:'−', MUL:'×', DIV:'÷'};
+
+var RULES = [
+  {id:388, label:'1天内IP关联用户数大于10', cond:'log_uid_ip_1_day_qty ≥ 10',
+   init:20, base:1, op:'MUL', metric:'1天内IP关联用户数', key:'log_uid_ip_1_day_qty', rate:100, max:0, vmin:10, eg:13, on:true},
+  {id:389, label:'1天内IP关联设备数大于10', cond:'log_did_ip_1_day_qty ≥ 10',
+   init:20, base:1, op:'MUL', metric:'1天内IP关联设备数', key:'log_did_ip_1_day_qty', rate:100, max:0, vmin:10, eg:12, on:true},
+  {id:390, label:'10分钟内IP登录次数大于10', cond:'log_ip_10_min_qty ≥ 10',
+   init:20, base:1, op:'MUL', metric:'10分钟内IP登录次数', key:'log_ip_10_min_qty', rate:100, max:0, vmin:10, eg:15, on:true},
+  {id:391, label:'IP登录位置显示国外', cond:'preItems.ipLocationPre.country ≠ 中国',
+   init:20, base:0, op:'NONE', metric:'', key:'', rate:100, max:0, on:true},
+  {id:392, label:'1天内用户登录次数大于30', cond:'log_uid_1_day_qty ≥ 30',
+   init:20, base:1, op:'MUL', metric:'1天内用户登录次数', key:'log_uid_1_day_qty', rate:100, max:0, vmin:30, eg:35, on:true},
+  {id:442, label:'10分钟内IP关联设备数大于等于3', cond:'log_did_ip_10_min_qty ≥ 3',
+   init:100, base:0, op:'MUL', metric:'10分钟内IP关联设备数', key:'log_did_ip_10_min_qty', rate:100, max:0, vmin:3, eg:4, on:true}
+];
+
+/* ================= 与引擎一致的计算 ================= */
+function calc(r, v){
+  var rate = r.rate / 100;
+  var extra = (typeof v === 'number' ? v : 0) * rate;
+  switch (r.op){
+    case 'ADD': extra = r.base + extra; break;
+    case 'SUB': extra = r.base - extra; break;
+    case 'MUL': extra = r.base * extra; break;
+    case 'DIV': extra = extra === 0 ? NaN : Math.round((r.base / extra) * 100) / 100; break;
+    default: break;
+  }
+  var amount = r.init + extra;
+  if (r.max > 0 && amount > r.max) amount = r.max;
+  return amount;
+}
+function fmt(n){ return !isFinite(n) ? '—' : String(Math.round(n * 100) / 100); }
+function riskOf(n){ return n >= 80 ? 'reject' : n >= 40 ? 'review' : 'pass'; }
+function riskTxt(n){ return {reject:'拒绝', review:'复核', pass:'通过'}[riskOf(n)]; }
+
+function warnOf(r){
+  if (r.op === 'MUL' && r.base === 0) return '命中基数为 0，乘以任何指标都等于 0，指标字段实际不参与计分。';
+  if (r.max > 0 && r.max <= r.init) return '最大值 ≤ 初始得分，任何命中结果都会被压到 ' + r.max + ' 分。';
+  if (r.op === 'DIV' && r.vmin === 0) return '除法没有除零保护，指标值为 0 时请求会报错。';
+  return '';
+}
+
+/* 跨过拒绝线所需的指标值（仅乘法规整） */
+function vForReject(r){
+  if (r.op !== 'MUL' || r.base <= 0 || r.rate <= 0) return null;
+  var coef = r.base * r.rate / 100;
+  return Math.ceil((80 - r.init) / coef);
+}
+
+/* ================= 公式渲染 ================= */
+function pillHtml(r){
+  var warn = warnOf(r);
+  var html = '<div class="pill' + (warn ? ' warn' : '') + '" tabindex="0">';
+  html += '<span class="lb">得分</span><span class="eq">=</span>';
+  html += '<span class="num n">' + r.init + '</span>';
+  if (r.op !== 'NONE' && r.metric){
+    html += '<span class="o">+</span><span class="num n">' + r.base + '</span>';
+    html += '<span class="o">' + OP_SYM[r.op] + '</span>';
+    html += '<span class="m" title="' + r.metric + '">' + r.metric + '</span>';
+    if (r.rate !== 100) html += '<span class="o">×</span><span class="num n">' + r.rate + '%</span>';
+  }
+  if (warn) html += '<span class="warn-ico">' + ICON_WARN + '</span>';
+  html += popHtml(r, warn);
+  html += '</div>';
+  return html;
+}
+
+function popHtml(r, warn){
+  var maxTxt = r.max > 0 ? r.max + ' 分' : '0（不封顶）';
+  var baseWhy = r.op === 'NONE' ? '未参与运算' : (r.op === 'MUL' ? '作为乘数系数' : '左操作数');
+  var vExpr = 'V × ' + r.rate + '%';
+  var plain = String(r.init);
+  if (r.op !== 'NONE' && r.metric){
+    if (r.op === 'ADD') plain = r.init + ' + (' + r.base + ' + ' + vExpr + ')';
+    else if (r.op === 'SUB') plain = r.init + ' + (' + r.base + ' − ' + vExpr + ')';
+    else if (r.op === 'MUL') plain = r.init + ' + ' + r.base + ' × (' + vExpr + ')';
+    else if (r.op === 'DIV') plain = r.init + ' + ' + r.base + ' ÷ (' + vExpr + ')';
+  }
+  var rows = [
+    ['初始得分', r.init, '命中即给的固定底分'],
+    ['命中基数', r.base, baseWhy],
+    ['操作符',   OP_NAME[r.op], OP_DESC[r.op]],
+    ['比率',     r.rate + '%', '指标值 × ' + (r.rate / 100)],
+    ['最大值',   maxTxt, '整条规则的分数上限']
+  ];
+  var h = '<div class="pop"><h5>规则算式</h5>';
+  h += '<div class="pop-f">' + plain + '</div>';
+  h += '<div class="pop-v">' + (r.metric ? 'V = ' + r.metric + '（' + r.key + '）' : '该规则未引用指标字段') + '</div>';
+  h += '<table class="pop-tbl">';
+  rows.forEach(function(row){
+    h += '<tr><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + row[2] + '</td></tr>';
+  });
+  h += '</table>';
+  if (r.metric){
+    var eg = [];
+    [r.vmin, r.eg, vForReject(r)].filter(function(v, i, a){ return v !== null && v !== undefined && a.indexOf(v) === i; })
+      .forEach(function(v){
+        var s = calc(r, v);
+        eg.push('<span>V = ' + v + ' → ' + fmt(s) + ' 分</span>');
+      });
+    h += '<h5>算例</h5><div class="pop-eg">' + eg.join('') + '</div>';
+  }
+  var vr = vForReject(r);
+  if (vr) h += '<div class="pop-note info">V ≥ ' + vr + ' 时，单条规则即可越过拒绝线（80 分）。</div>';
+  if (warn) h += '<div class="pop-note">⚠ ' + warn + '</div>';
+  h += '</div>';
+  return h;
+}
+
+/* ================= 右侧附加信息（三种方案） ================= */
+function afterHtml(r){
+  var warn = warnOf(r);
+  var out = '';
+  var hitMin = r.vmin !== undefined ? calc(r, r.vmin) : null;
+
+  /* A：命中下限 */
+  out += '<span class="hint vA' + (warn ? ' warn' : '') + '">';
+  if (warn){
+    out += '× 0 不生效，恒为 <b>' + r.init + '</b> 分';
+  } else if (r.op === 'NONE'){
+    out += '命中即 <b>' + r.init + '</b> 分 · 固定分';
+  } else {
+    out += '命中 <b>≥ ' + fmt(hitMin) + '</b> 分';
+    out += '<span class="u">·</span>' + (r.max > 0 ? '封顶 ' + r.max : '不封顶');
+  }
+  out += '</span>';
+
+  /* B：算例结果 + 风险档 */
+  var egScore = calc(r, r.eg);
+  out += '<span class="hint vB' + (warn ? ' warn' : '') + '">';
+  if (r.op === 'NONE' || !r.metric) out += '命中即 <b>' + fmt(egScore) + ' 分</b>';
+  else out += '示例 V=' + r.eg + '<span class="u">→</span><b>' + fmt(egScore) + ' 分</b>';
+  out += '</span>';
+  if (!warn) out += '<span class="tag-risk vB tag-' + riskOf(egScore) + '">' + riskTxt(egScore) + '</span>';
+
+  /* C：迷你刻度 */
+  var pct = Math.max(0, Math.min(100, egScore / 150 * 100));
+  out += '<span class="mini vC">' +
+          '<span class="val" style="left:' + pct + '%">' + fmt(egScore) + ' 分</span>' +
+          '<span class="track">' +
+            '<i class="tk" style="left:26.67%"></i><i class="tk" style="left:53.33%"></i>' +
+            '<i class="pt" style="left:' + pct + '%"></i>' +
+          '</span>' +
+          '<span class="scale"><span>0</span><span>40</span><span>80</span><span>150</span></span>' +
+        '</span>';
+  return out;
+}
+
+var ICON_WARN = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>';
+var ICON_CAL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>';
+
+/* ================= 策略总分公式 ================= */
+function V(i){ return 'V<sub>' + i + '</sub>'; }
+
+function sumModel(){
+  var C = 0, vars = [], terms = [], linear = true, zeroVars = [];
+  RULES.forEach(function(r, i){
+    var v = V(i + 1), rateK = r.rate / 100;
+    if (r.max > 0) linear = false;
+    if (r.op === 'NONE' || !r.metric){ C += r.init; terms.push(String(r.init)); return; }
+    if (r.op === 'ADD'){
+      C += r.init + r.base; vars.push({ v: v, k: rateK });
+      terms.push(r.init + ' + ' + r.base + ' + ' + v + '×' + r.rate + '%');
+    } else if (r.op === 'SUB'){
+      C += r.init + r.base; vars.push({ v: v, k: -rateK });
+      terms.push(r.init + ' + ' + r.base + ' − ' + v + '×' + r.rate + '%');
+    } else if (r.op === 'MUL'){
+      C += r.init;
+      var kk = Math.round(r.base * rateK * 100) / 100;
+      if (kk === 0) zeroVars.push({ v: v, label: r.metric });
+      else vars.push({ v: v, k: kk });
+      terms.push(r.init + ' + ' + r.base + '×' + v + (r.rate === 100 ? '' : '×' + r.rate + '%'));
+    } else if (r.op === 'DIV'){
+      C += r.init; linear = false;
+      terms.push(r.init + ' + ' + r.base + ' ÷ (' + v + '×' + r.rate + '%)');
+    }
+  });
+
+  var merged = null;
+  if (linear && vars.length){
+    var ks = vars.map(function(x){ return x.k; });
+    var same = ks.every(function(x){ return Math.abs(x - ks[0]) < 1e-9; });
+    if (same){
+      var coef = ks[0];
+      var body = Math.abs(coef) + '×(' + vars.map(function(x){ return x.v; }).join(' + ') + ')';
+      merged = C === 0 ? (coef < 0 ? '−' : '') + body : C + (coef < 0 ? ' − ' : ' + ') + body;
+    } else {
+      var parts = vars.map(function(x){
+        var s = x.k === 1 ? '' : (x.k === -1 ? '−' : (x.k < 0 ? '−' + Math.abs(x.k) + '×' : x.k + '×'));
+        return s + x.v;
+      });
+      merged = (C ? C + ' + ' : '') + parts.join(' + ');
+      merged = merged.replace(/ \+ −/g, ' − ');
+    }
+  } else if (linear && !vars.length){
+    merged = String(C);
+  }
+  return {C: C, vars: vars, terms: terms, merged: merged, linear: linear, zeroVars: zeroVars};
+}
+
+function sumPopHtml(m){
+  var h = '<div class="pop">';
+  h += '<h5>策略总分公式</h5>';
+  h += '<div class="pop-f" style="font-size:12px;line-height:1.8;font-weight:500">总分 = ' +
+       m.terms.map(function(t){ return '(' + t + ')'; }).join('<br>+ ') + '</div>';
+  if (m.merged) h += '<div class="pop-note info">全部命中时合并为：<b>' + m.merged + '</b></div>';
+  h += '<h5>变量</h5>';
+  RULES.forEach(function(r, i){
+    if (!r.metric) return;
+    h += '<div class="sum-var"><i>' + V(i + 1) + '</i><span>' + r.metric + '</span><em>比率 ' + r.rate + '%</em></div>';
+  });
+  if (m.zeroVars.length){
+    h += '<div class="pop-note">' + m.zeroVars.map(function(z){ return z.v; }).join('、') +
+         ' 系数为 0（命中基数 0），合并式里已省略——该指标实际不参与计分。</div>';
+  }
+  var a = RULES[0], b = RULES[1], sa = calc(a, a.eg), sb = calc(b, b.eg);
+  h += '<div class="pop-note info">示例：只命中前 2 条（V<sub>1</sub>=' + a.eg + '、V<sub>2</sub>=' + b.eg +
+       '）→ ' + fmt(sa) + ' + ' + fmt(sb) + ' = <b>' + fmt(sa + sb) + ' 分</b>（' + riskTxt(sa + sb) + '）</div>';
+  h += '</div>';
+  return h;
+}
+
+function sumBlockHtml(){
+  var m = sumModel();
+  var h = '<div class="sumbox" tabindex="0">';
+  h += '<div class="sum-main"><span class="lb">总分公式</span>= <span class="sig">Σ</span> ' + RULES.length + ' 条命中规则</div>';
+  h += m.merged
+    ? '<div class="sum-sub">全部命中 = <b>' + m.merged + '</b></div>'
+    : '<div class="sum-sub">含封顶 / 除法规则，按条累加</div>';
+  h += sumPopHtml(m);
+  return h + '</div>';
+}
+
+/* ================= 规则编辑：右侧实时算式 ================= */
+var METRICS_ALL = ['1天内IP关联用户数','1天内IP关联设备数','10分钟内IP登录次数','1天内用户登录次数','10分钟内IP关联设备数'];
+
+function numOf(id){ var v = parseFloat(document.getElementById(id).value); return isNaN(v) ? 0 : v; }
+function valOf(id){ return document.getElementById(id).value; }
+
+function formCfg(){
+  var op = valOf('fOp');
+  return {
+    init: numOf('fInit'), base: numOf('fBase'), op: op,
+    metric: op === 'NONE' ? '' : valOf('fMetric'),
+    rate: numOf('fRate'), max: numOf('fMax')
+  };
+}
+
+function term(val, label){
+  return '<span class="term"><span class="val">' + val + '</span><em>' + label + '</em></span>';
+}
+function sym(s){ return '<span class="sym">' + s + '</span>'; }
+function opTerm(c){
+  return '<span class="term"><span class="val"><span class="osym">' + OP_SYM[c.op] + '</span></span><em>操作符</em></span>';
+}
+
+/* 主算式：每个数字下方标注它来自哪个字段 */
+function fmlHtml(c){
+  var metric = '<span class="m" title="' + c.metric + '">' + c.metric + '</span>';
+  if (c.op === 'NONE' || !c.metric){
+    return '<span class="fml-eq">得分 =</span>' + term('<b>' + c.init + '</b>', '初始得分');
+  }
+  var h = '<span class="fml-eq">得分 =</span>' + term('<b>' + c.init + '</b>', '初始得分') + sym('+');
+  if (c.op === 'MUL' || c.op === 'DIV'){
+    h += term('<b>' + c.base + '</b>', '命中基数') + opTerm(c) + sym('(') +
+         term(metric, '指标字段') + sym('×') + term('<b>' + c.rate + '%</b>', '比率') + sym(')');
+  } else {
+    h += sym('(') + term('<b>' + c.base + '</b>', '命中基数') + opTerm(c) +
+         term(metric, '指标字段') + sym('×') + term('<b>' + c.rate + '%</b>', '比率') + sym(')');
+  }
+  return h;
+}
+
+/* 最大值截断逻辑 */
+function capHtml(c){
+  var h = '<div class="cap"><span class="cap-eq">最终得分 =</span>';
+  if (c.max > 0){
+    h += '<span class="fn">min</span>' + sym('(') + '<span class="raw">原始分</span>' + sym(',') +
+         term('<b>' + c.max + '</b>', '最大值') + sym(')');
+  } else {
+    h += '<span class="raw">原始分</span><span class="tip">（最大值 = 0，不封顶）</span>';
+  }
+  return h + '</div>';
+}
+
+function calcRaw(c, v){
+  var rate = c.rate / 100, extra = (typeof v === 'number' ? v : 0) * rate;
+  switch (c.op){
+    case 'ADD': extra = c.base + extra; break;
+    case 'SUB': extra = c.base - extra; break;
+    case 'MUL': extra = c.base * extra; break;
+    case 'DIV': extra = extra === 0 ? NaN : Math.round((c.base / extra) * 100) / 100; break;
+  }
+  return c.init + extra;
+}
+
+function calcText(c, v){
+  if (c.op === 'NONE' || !c.metric) return String(c.init);
+  var inner = v + '×' + c.rate + '%';
+  var core;
+  if (c.op === 'MUL') core = c.base + '×(' + inner + ')';
+  else if (c.op === 'DIV') core = c.base + '÷(' + inner + ')';
+  else if (c.op === 'ADD') core = '(' + c.base + '+' + inner + ')';
+  else core = '(' + c.base + '−' + inner + ')';
+  var s = c.init + '+' + core;
+  if (c.max > 0) s = 'min(' + s + ', ' + c.max + ')';
+  return s;
+}
+
+function renderPreview(){
+  var c = formCfg();
+  var warn = '';
+  if (c.op === 'MUL' && c.base === 0) warn = 'warn';
+  if (c.max > 0 && c.max <= c.init) warn = 'bad';
+  if (c.op === 'DIV') warn = 'warn';
+
+  var h = '<div class="pv-head"><span class="t">得分算式</span><span class="pv-live">实时</span></div>';
+  h += '<div class="pv-formula"><div class="fml">' + fmlHtml(c) + '</div></div>';
+
+  h += '<div class="pv-sep"></div><div class="pv-title">封顶逻辑 <em>最大值</em></div>';
+  h += capHtml(c);
+
+  h += '<div class="pv-sep"></div><div class="pv-title">算例 ' + (c.op === 'NONE' ? '' : '<em>V = 指标字段值</em>') + '</div>';
+  if (c.op === 'NONE'){
+    var s0 = calc(c, 0), r0 = riskOf(s0);
+    h += '<div class="eg-row"><span class="v">规则命中</span>' +
+         '<span class="calc">' + c.init + '</span>' +
+         '<span class="s">= ' + fmt(s0) + ' 分</span>' +
+         '<span class="tag-risk tag-' + r0 + '">' + riskTxt(s0) + '</span></div>';
+  } else {
+    [10, 30, 60].forEach(function(v){
+      var s = calc(c, v), r = riskOf(s);
+      h += '<div class="eg-row"><span class="v">V = ' + v + '</span>' +
+           '<span class="calc">' + calcText(c, v) + '</span>' +
+           '<span class="s">= ' + fmt(s) + ' 分</span>' +
+           '<span class="tag-risk tag-' + r + '">' + riskTxt(s) + '</span></div>';
+    });
+  }
+
+  var note, raw60 = calcRaw(c, 60);
+  if (warn === 'bad') note = '最大值 ≤ 初始得分，命中后会被压到 ' + c.max + ' 分，比底分还低。';
+  else if (c.op === 'MUL' && c.base === 0) note = '命中基数为 0，×0 后指标不参与计分，得分恒为 ' + c.init + ' 分。';
+  else if (c.op === 'DIV') note = '除法没有除零保护：指标值为 0 时引擎会抛异常。';
+  else if (c.max > 0) note = '原始分超过 ' + c.max + ' 分按 ' + c.max + ' 分计' +
+    (raw60 > c.max ? '；例如 V=60 时原始分 ' + fmt(raw60) + '，最终 ' + c.max + ' 分。' : '。');
+  else note = '最大值 0 = 不封顶，原始分即最终得分。想让单条规则限高，在这里填正数。';
+
+  h += '<div class="pv-sep"></div><div class="pv-note ' + warn + '">' + note + '</div>';
+  document.getElementById('fprev').innerHTML = h;
+}
+
+function openForm(id){
+  var r = RULES.filter(function(x){ return x.id === id; })[0] || RULES[0];
+  setVal('fName', r.label);
+  setVal('fInit', r.init);
+  setVal('fBase', r.base);
+  setVal('fOp', r.op);
+  setVal('fMetric', r.metric || METRICS_ALL[0]);
+  setVal('fRate', r.rate);
+  setVal('fMax', r.max);
+  document.getElementById('fHead').textContent = r.label;
+  document.getElementById('fMetric').disabled = (r.op === 'NONE');
+  renderPreview();
+  showView('form');
+}
+function setVal(id, v){ document.getElementById(id).value = v; }
+
+function onFormChange(){
+  var op = valOf('fOp');
+  document.getElementById('fMetric').disabled = (op === 'NONE');
+  document.getElementById('fHead').textContent = valOf('fName') || '未命名规则';
+  renderPreview();
+}
+
+/* ================= 渲染 ================= */
+function render(){
+  document.getElementById('rules').innerHTML = RULES.map(function(r){
+    return '<div class="rule" data-id="' + r.id + '" title="点击编辑规则">' +
+      '<div class="rule-main">' +
+        '<div class="rule-name" title="' + r.label + '">' + r.label + '</div>' +
+        '<div class="rule-cond" title="' + r.cond + '">' + r.cond + '</div>' +
+      '</div>' +
+      '<div class="rule-formula">' + pillHtml(r) + afterHtml(r) + '</div>' +
+      '<div class="rule-actions">' +
+        '<button class="icon-btn" title="规则明细">' + ICON_CAL + '</button>' +
+        '<span class="switch' + (r.on ? '' : ' off') + '"></span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+var TREE = [
+  {name:'电商', items:[['营销防刷',6,true],['账户安全',0],['支付反欺诈',0],['商家刷单',0]]},
+  {name:'本地生活', items:[['账户安全',1],['营销防刷',0],['支付反欺诈',0],['商家刷单',0]]},
+  {name:'跑步', items:[['账户安全',0],['营销防刷',1]]},
+  {name:'社交', items:[['账户安全',1],['营销防刷',0]]},
+  {name:'出行', items:[['账户安全',1],['营销防刷',0]]},
+  {name:'大健康', items:[['账户安全',1]]},
+  {name:'元宇宙', items:[['账户安全',1]]},
+  {name:'未分类', items:[['待归类',0]]}
+];
+
+function renderTree(){
+  document.getElementById('tree').innerHTML = TREE.map(function(g){
+    var total = g.items.reduce(function(s, it){ return s + it[1]; }, 0);
+    return '<div class="tree-g"><div class="row"><span class="car">▶</span><span>' + g.name + '</span>' +
+      '<span class="cnt">' + total + '</span></div>' +
+      g.items.map(function(it){
+        return '<div class="tree-i' + (it[2] ? ' active' : '') + '"><span class="dot"></span><span>' + it[0] + '</span>' +
+          '<span class="cnt">' + it[1] + '</span></div>';
+      }).join('') + '</div>';
+  }).join('');
+}
+
+var TABS = [
+  ['字段管理','M3 4h18v16H3zM8 4v16M3 9h18'],
+  ['预处理管理','M3 12h4l3-7 4 14 3-7h4'],
+  ['黑·白名单管理','M4 6h16M4 12h16M4 18h10'],
+  ['抽象处理','M12 3v6M12 15v6M6 9h12M6 9v6h12V9'],
+  ['机器学习配置','M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v3M12 19v3M2 12h3M19 12h3'],
+  ['策略管理','M4 7h16M4 12h16M4 17h16M9 4v6M15 14v6']
+];
+
+function renderTabs(){
+  document.getElementById('tabs').innerHTML = TABS.map(function(t, i){
+    var active = t[0] === '策略管理';
+    return '<div class="tab' + (active ? ' active' : '') + '">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + t[1] + '"></path></svg>' +
+      '<span>' + t[0] + '</span></div>';
+  }).join('');
+}
+
+function renderCard(){
+  document.getElementById('scard').innerHTML =
+    '<div class="sc-idx">1</div>' +
+    '<div class="sc-main">' +
+      '<div class="sc-name">登录异常 <span class="s-tag">启用中</span></div>' +
+      '<div class="sc-meta">6 条规则&nbsp;·&nbsp;警戒 40&nbsp;·&nbsp;拒绝 80</div>' +
+      '<div class="sc-ops">' +
+        '<button class="link">复制</button><button class="link">编辑</button>' +
+        '<button class="link" id="toDetail">管理规则</button><button class="link">删除</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="sc-sum">' + sumBlockHtml() + '</div>' +
+    '<span class="switch" style="margin-left:6px"></span>';
+  document.getElementById('sumDetail').innerHTML = sumBlockHtml();
+}
+
+function showView(name){
+  document.getElementById('viewList').hidden = name !== 'list';
+  document.getElementById('viewDetail').hidden = name !== 'detail';
+  document.getElementById('viewForm').hidden = name !== 'form';
+  window.scrollTo(0, 0);
+}
+document.addEventListener('click', function(e){
+  if (e.target.id === 'toDetail') showView('detail');
+  if (e.target.id === 'backList') showView('list');
+  if (e.target.id === 'backDetail') showView('detail');
+});
+
+document.getElementById('rules').addEventListener('click', function(e){
+  if (e.target.closest('.pop') || e.target.closest('.switch')) return;
+  var row = e.target.closest('.rule');
+  if (row) openForm(parseInt(row.dataset.id, 10));
+});
+
+['fInit','fBase','fRate','fMax','fName'].forEach(function(id){
+  var el = document.getElementById(id);
+  el.addEventListener('input', onFormChange);
+});
+['fOp','fMetric'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', onFormChange);
+});
+
+renderTree();
+renderTabs();
+render();
+renderCard();
+renderPreview();
+
+/* 方案切换 */
+var DESC = {
+  A:'A：算式 + 命中下限，信息最省，默认态推荐',
+  B:'B：算式 + 算例结果与风险档，体感最强',
+  C:'C：算式 + 迷你阈值刻度，一眼看出离两条线多远'
+};
+function setVariant(v){
+  document.body.dataset.v = v;
+  [].forEach.call(document.querySelectorAll('#seg button'), function(x){
+    x.classList.toggle('on', x.dataset.v === v);
+  });
+  document.getElementById('dd').textContent = DESC[v];
+}
+document.getElementById('seg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  setVariant(b.dataset.v);
+});
+
+/* 评审辅助：?v=B / ?v=C 直接切方案，?pop=1 展开第一条算式的详解 */
+var q = new URLSearchParams(location.search);
+if (q.get('v')) setVariant(q.get('v'));
+if (q.get('pop') === '1') document.body.classList.add('demo-pop');
+if (q.get('pop') === 'sum') document.body.classList.add('demo-pop-sum');
+if (q.get('view') === 'detail') showView('detail');
+if (q.get('view') === 'form') openForm(parseInt(q.get('rule'), 10) || 388);
+if (q.get('max') !== null){ setVal('fMax', q.get('max')); renderPreview(); }
+if (q.get('op')){ setVal('fOp', q.get('op')); onFormChange(); }
+</script>
+</body>
+</html>

@@ -38,8 +38,20 @@ public class ModelVO implements Serializable{
     private String code;
 
     private Boolean template;
-    
+
     private String dashboardUrl;
+
+    /** 业务线编码（BusinessLineType.code） */
+    private String businessLine;
+
+    /** 场景ID */
+    private Long sceneId;
+
+    /** 业务线名称（展示用，Service 层填充） */
+    private String businessLineName;
+
+    /** 场景名称（展示用，Service 层填充） */
+    private String sceneName;
     
     public Long getId() {
         return id;
@@ -179,6 +191,38 @@ public class ModelVO implements Serializable{
     public void setDashboardUrl(String dashboardUrl) {
         this.dashboardUrl = dashboardUrl;
     }
-    
-    
+
+    public String getBusinessLine() {
+        return businessLine;
+    }
+
+    public void setBusinessLine(String businessLine) {
+        this.businessLine = businessLine;
+    }
+
+    public Long getSceneId() {
+        return sceneId;
+    }
+
+    public void setSceneId(Long sceneId) {
+        this.sceneId = sceneId;
+    }
+
+    public String getBusinessLineName() {
+        return businessLineName;
+    }
+
+    public void setBusinessLineName(String businessLineName) {
+        this.businessLineName = businessLineName;
+    }
+
+    public String getSceneName() {
+        return sceneName;
+    }
+
+    public void setSceneName(String sceneName) {
+        this.sceneName = sceneName;
+    }
+
+
 }

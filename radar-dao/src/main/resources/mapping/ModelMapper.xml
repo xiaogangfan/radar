@@ -14,6 +14,8 @@
     <result column="REFERENCE_DATE" jdbcType="VARCHAR" property="referenceDate" />
     <result column="FIELD_VALIDATE" jdbcType="BIT" property="fieldValidate" />
     <result column="CODE" jdbcType="VARCHAR" property="code" />
+    <result column="BUSINESS_LINE" jdbcType="VARCHAR" property="businessLine" />
+    <result column="SCENE_ID" jdbcType="BIGINT" property="sceneId" />
     <result column="TEMPLATE" jdbcType="BIT" property="template" />
     <result column="DASHBOARD_URL" jdbcType="VARCHAR" property="dashboardUrl" />
     <result column="STATUS" jdbcType="INTEGER" property="status" />

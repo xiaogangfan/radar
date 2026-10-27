@@ -35,6 +35,9 @@
         <tensorflow.version>1.12.0</tensorflow.version>
         <es.version>7.11.2</es.version>
         <mapstruct.version>1.4.1.Final</mapstruct.version>
+        <!-- Spring Boot 2.2.5 BOM pins an old Lombok version that cannot
+             compile on the JDKs available in modern local environments. -->
+        <lombok.version>1.18.40</lombok.version>
     </properties>
 
 
@@ -250,6 +253,11 @@
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct</artifactId>
                 <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
             </dependency>
             <!-- MapStruct  end -->
 

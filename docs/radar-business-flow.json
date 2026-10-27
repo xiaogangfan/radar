@@ -1,0 +1,36 @@
+{
+  "title": "Radar 实时风控业务数据流",
+  "pageWidth": 1400,
+  "pageHeight": 900,
+  "nodes": [
+    {"id":"caller","label":"业务方 / 调用方","x":40,"y":170,"width":170,"height":70,"style":"external"},
+    {"id":"api","label":"Engine API\n/upload /getScore /syncStatus","x":270,"y":170,"width":210,"height":70,"style":"primary"},
+    {"id":"model","label":"读取模型\nengine_model","x":550,"y":80,"width":170,"height":70,"style":"data"},
+    {"id":"validate","label":"字段校验\nengine_field","x":550,"y":190,"width":170,"height":70,"style":"default"},
+    {"id":"prepare","label":"预处理插件\nengine_pre_item","x":550,"y":300,"width":170,"height":70,"style":"default"},
+    {"id":"mongo","label":"写入事件\nMongo entity_{modelId}","x":800,"y":300,"width":190,"height":70,"style":"data"},
+    {"id":"abstraction","label":"Abstraction\n统计 / 聚合","x":1040,"y":80,"width":160,"height":70,"style":"primary"},
+    {"id":"adaptation","label":"Adaptation\n特征适配","x":1040,"y":190,"width":160,"height":70,"style":"primary"},
+    {"id":"activation","label":"Activation\n规则命中","x":1040,"y":300,"width":160,"height":70,"style":"risk"},
+    {"id":"config","label":"MySQL 规则配置\n抽象 / 激活 / 规则","x":800,"y":80,"width":190,"height":70,"style":"data"},
+    {"id":"redis","label":"Redis\n结果缓存 / 配置订阅","x":1260,"y":190,"width":190,"height":70,"style":"data"},
+    {"id":"es","label":"Elasticsearch\n检索 / 命中报表","x":1260,"y":300,"width":190,"height":70,"style":"data"},
+    {"id":"result","label":"返回 CommonResult\n同步结果或查询结果","x":1260,"y":80,"width":190,"height":70,"style":"primary"}
+  ],
+  "edges": [
+    {"source":"caller","target":"api","label":"事件 JSON / reqId"},
+    {"source":"api","target":"model","label":"modelGuid"},
+    {"source":"model","target":"validate","label":"模型有效"},
+    {"source":"validate","target":"prepare","label":"校验通过"},
+    {"source":"prepare","target":"mongo","label":"原始 + 预处理字段"},
+    {"source":"mongo","target":"abstraction","label":"事件上下文"},
+    {"source":"config","target":"abstraction","label":"抽象配置"},
+    {"source":"abstraction","target":"adaptation","label":"中间特征"},
+    {"source":"adaptation","target":"activation","label":"适配结果"},
+    {"source":"config","target":"activation","label":"激活 / 规则"},
+    {"source":"activation","target":"redis","label":"分析结果"},
+    {"source":"activation","target":"es","label":"命中明细"},
+    {"source":"redis","target":"result","label":"reqId 查询"},
+    {"source":"result","target":"caller","label":"风险结果"}
+  ]
+}

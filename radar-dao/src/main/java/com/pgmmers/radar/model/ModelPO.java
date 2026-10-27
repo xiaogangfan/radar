@@ -50,6 +50,18 @@ public class ModelPO {
     private String code;
 
     /**
+     * 业务线编码（BusinessLineType.code）
+     */
+    @Column(name = "BUSINESS_LINE")
+    private String businessLine;
+
+    /**
+     * 场景ID（engine_scene.ID）
+     */
+    @Column(name = "SCENE_ID")
+    private Long sceneId;
+
+    /**
      * 1 标识模板
      */
     @Column(name = "TEMPLATE")
@@ -214,6 +226,42 @@ public class ModelPO {
      */
     public void setCode(String code) {
         this.code = code;
+    }
+
+    /**
+     * 获取业务线编码
+     *
+     * @return BUSINESS_LINE - 业务线编码
+     */
+    public String getBusinessLine() {
+        return businessLine;
+    }
+
+    /**
+     * 设置业务线编码
+     *
+     * @param businessLine 业务线编码
+     */
+    public void setBusinessLine(String businessLine) {
+        this.businessLine = businessLine;
+    }
+
+    /**
+     * 获取场景ID
+     *
+     * @return SCENE_ID - 场景ID
+     */
+    public Long getSceneId() {
+        return sceneId;
+    }
+
+    /**
+     * 设置场景ID
+     *
+     * @param sceneId 场景ID
+     */
+    public void setSceneId(Long sceneId) {
+        this.sceneId = sceneId;
     }
 
     /**

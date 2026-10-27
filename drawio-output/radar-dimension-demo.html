@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>维度管理 Demo · radar-admin</title>
+<style>
+  :root { --fg: #1f2329; --muted: #6a737d; --line: #e4e6eb; --bg: #f6f7f9; --accent: #2f6feb; --danger: #c0392b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--fg); background: var(--bg); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #fff; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .meta { color: var(--muted); font-size: 12px; }
+  header button { padding: 4px 10px; border: 1px solid var(--line); background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  header button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  header button:disabled { opacity: .5; cursor: not-allowed; }
+
+  #login-screen { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 53px); }
+  .login-card { width: 340px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .login-card h2 { margin: 0 0 4px; font-size: 16px; }
+  .login-card .sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; }
+  .login-card label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .login-card input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+  .login-card .captcha-row { display: flex; gap: 8px; align-items: center; }
+  .login-card .captcha-row input { flex: 1; }
+  .login-card .captcha-row img { width: 90px; height: 32px; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; background: #fff; }
+  .login-card .err { color: var(--danger); font-size: 12px; min-height: 16px; margin-top: 6px; }
+  .login-card button.primary { width: 100%; margin-top: 14px; padding: 8px; background: var(--accent); color: #fff; border: 0; border-radius: 4px; cursor: pointer; font-size: 14px; }
+  .login-card button.primary:hover:not(:disabled) { background: #2659c4; }
+  .login-card button.primary:disabled { background: #a8b3cc; cursor: not-allowed; }
+
+  #main-screen { display: none; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px; height: calc(100vh - 53px); }
+  body.logged-in #login-screen { display: none; }
+  body.logged-in #main-screen { display: grid; }
+  .pane { background: #fff; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+  .pane h2 { font-size: 13px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #fafbfc; color: var(--muted); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+  .pane h2 .count-tag { background: #f1f3f5; color: var(--muted); font-size: 11px; padding: 1px 8px; border-radius: 10px; font-weight: 400; }
+  .pane .body { overflow: auto; flex: 1; }
+
+  .tree { padding: 8px 0; font-size: 13px; }
+  .tree ul { list-style: none; margin: 0; padding: 0; }
+  .tree .row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; cursor: pointer; border-radius: 4px; margin: 1px 6px; }
+  .tree .row:hover { background: #f0f3f8; }
+  .tree .row.selected { background: #e6efff; color: var(--accent); font-weight: 500; }
+  .tree .caret { display: inline-block; width: 12px; text-align: center; color: var(--muted); font-size: 10px; transition: transform .1s; }
+  .tree .caret.open { transform: rotate(90deg); }
+  .tree .row.empty-caret .caret { visibility: hidden; }
+  .tree .label { flex: 1; }
+  .tree .count { color: var(--muted); font-size: 11px; background: #f1f3f5; padding: 1px 6px; border-radius: 10px; }
+  .tree .children { padding-left: 18px; }
+
+  .detail .body { padding: 14px; }
+  .detail .empty { color: var(--muted); font-size: 13px; padding: 40px 20px; text-align: center; }
+  .detail dl { display: grid; grid-template-columns: 90px 1fr; gap: 8px 12px; margin: 0; }
+  .detail dt { color: var(--muted); font-size: 12px; }
+  .detail dd { margin: 0; font-size: 13px; word-break: break-all; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #e6efff; color: var(--accent); font-size: 11px; }
+
+  .section-head { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 10px; }
+  .section-head h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--fg); }
+  .btn { padding: 4px 12px; border: 1px solid var(--line); background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover:not(:disabled) { background: #2659c4; }
+  .btn.danger { color: var(--danger); border-color: #e8c5c1; }
+  .btn.danger:hover:not(:disabled) { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* model table */
+  table.models { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.models th, table.models td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.models th { background: #fafbfc; font-weight: 500; color: var(--muted); font-size: 11px; position: sticky; top: 0; }
+  table.models tr:hover td { background: #fafbfc; }
+  table.models .empty-row td { text-align: center; color: var(--muted); padding: 30px; }
+  .status-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; }
+  .status-tag.s0 { background: #f1f3f5; color: var(--muted); }
+  .status-tag.s1 { background: #dff5e3; color: #1d7d3a; }
+  .status-tag.s2 { background: #fce6e3; color: var(--danger); }
+
+  /* inline create form */
+  .create-form { background: #fafbfc; border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin: 10px 0; }
+  .create-form .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .create-form .tab { padding: 5px 14px; font-size: 12px; cursor: pointer; border: 1px solid transparent; border-bottom: 0; border-radius: 4px 4px 0 0; color: var(--muted); }
+  .create-form .tab.active { background: #fff; border-color: var(--line); color: var(--accent); font-weight: 500; margin-bottom: -1px; background: #fff; }
+  .create-form .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .create-form label { font-size: 12px; color: var(--muted); min-width: 84px; text-align: right; }
+  .create-form input[type="text"] { flex: 1; padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: 12px; }
+  .create-form select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: 12px; background: #fff; }
+  .create-form .hint { font-size: 11px; color: var(--muted); flex: 1; }
+  .create-form .checkbox { font-size: 12px; color: var(--fg); display: inline-flex; align-items: center; gap: 4px; }
+  .create-form .actions { display: flex; gap: 8px; margin-top: 10px; padding-left: 92px; }
+  .create-form .err { color: var(--danger); font-size: 12px; margin-top: 4px; padding-left: 92px; }
+  .create-form .step-note { font-size: 11px; color: var(--muted); margin: 4px 0 8px; padding-left: 92px; }
+
+  .toast { position: fixed; top: 20px; right: 20px; padding: 8px 14px; background: #1f2329; color: #fff; border-radius: 4px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; }
+  .toast.err { background: var(--danger); }
+  .toast.ok { background: #1d7d3a; }
+
+  footer { color: var(--muted); font-size: 11px; text-align: center; padding: 6px; }
+  footer code { background: #fff; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>维度管理 <span style="color:var(--muted);font-weight:400;font-size:12px;">/ 业务线 / 场景 / 模型</span></h1>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span id="token-state" class="meta">未登录</span>
+    <button id="btn-refresh" disabled>刷新</button>
+    <button id="btn-logout" hidden>退出</button>
+  </div>
+</header>
+
+<!-- STATE 1: login -->
+<section id="login-screen">
+  <form class="login-card" onsubmit="return false">
+    <h2>登录</h2>
+    <div class="sub">radar-admin · 维度管理</div>
+    <label>账号</label>
+    <input id="loginName" value="admin" autocomplete="username">
+    <label>密码</label>
+    <input id="passwd" type="password" value="123456" autocomplete="current-password">
+    <label>验证码</label>
+    <div class="captcha-row">
+      <input id="captcha" maxlength="6" placeholder="看图输入" autocomplete="off">
+      <img id="captcha-img" alt="点击刷新" title="点击刷新">
+    </div>
+    <div id="login-err" class="err"></div>
+    <button id="btn-do-login" type="submit" class="primary">登录</button>
+  </form>
+</section>
+
+<!-- STATE 2: main -->
+<main id="main-screen">
+  <section class="pane">
+    <h2>业务线 / 场景 <span id="tree-stat" class="count-tag"></span></h2>
+    <div class="body"><div id="tree" class="tree"></div></div>
+  </section>
+
+  <section class="pane detail">
+    <h2 id="detail-title">节点详情</h2>
+    <div class="body">
+      <div id="detail-empty" class="empty">点左边节点看详情</div>
+
+      <!-- business line detail -->
+      <div id="detail-bl" hidden>
+        <dl>
+          <dt>类型</dt><dd><span class="badge">业务线</span></dd>
+          <dt>名称</dt><dd id="bl-name"></dd>
+          <dt>编码</dt><dd id="bl-code"></dd>
+          <dt>场景数</dt><dd id="bl-scene-count"></dd>
+          <dt>模型数</dt><dd id="bl-model-count"></dd>
+        </dl>
+      </div>
+
+      <!-- scene detail: meta + model list + create -->
+      <div id="detail-scene" hidden>
+        <dl>
+          <dt>类型</dt><dd><span class="badge" id="sc-type"></span></dd>
+          <dt>名称</dt><dd id="sc-name"></dd>
+          <dt>编码</dt><dd id="sc-code"></dd>
+          <dt>业务线</dt><dd id="sc-bline"></dd>
+          <dt>状态</dt><dd id="sc-status"></dd>
+          <dt>排序</dt><dd id="sc-sort"></dd>
+        </dl>
+
+        <div class="section-head">
+          <h3>场景下的模型 <span id="sc-model-count" class="count-tag" style="margin-left:6px"></span></h3>
+          <button class="btn primary" id="btn-show-create">+ 新建模型</button>
+        </div>
+
+        <div id="create-area"></div>
+
+        <table class="models">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>编码</th>
+              <th>状态</th>
+              <th>模板</th>
+              <th>更新时间</th>
+              <th style="width:60px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="model-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<footer>
+  直连 <code id="api-base">同源</code> → admin :6581 · 数据 <span id="data-ts">—</span>
+</footer>
+
+<script>
+const API = '';
+let TOKEN = localStorage.getItem('radar_demo_token') || '';
+let treeData = [];
+let currentScene = null; // selected scene ref
+let currentModels = [];
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+const STATUS_TEXT = { 0: '初始', 1: '可用', 2: '不可用' };
+const STATUS_CLS = { 0: 's0', 1: 's1', 2: 's2' };
+
+function toast(msg, type) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (type || '');
+  setTimeout(() => { el.className = 'toast'; }, 2200);
+}
+
+function setLoggedIn(t) {
+  TOKEN = t;
+  if (TOKEN) localStorage.setItem('radar_demo_token', TOKEN);
+  else localStorage.removeItem('radar_demo_token');
+  document.body.classList.toggle('logged-in', !!TOKEN);
+  $('#token-state').textContent = TOKEN ? '已登录' : '未登录';
+  $('#btn-refresh').disabled = !TOKEN;
+  $('#btn-logout').hidden = !TOKEN;
+  if (!TOKEN) {
+    currentScene = null;
+    currentModels = [];
+  }
+}
+
+async function loadCaptcha() {
+  $('#captcha-img').src = API + '/services/v1/common/getCaptcha?t=' + Date.now();
+}
+
+async function doLogin() {
+  const errEl = $('#login-err');
+  errEl.textContent = '';
+  const btn = $('#btn-do-login');
+  btn.disabled = true;
+  try {
+    const body = new URLSearchParams({
+      loginName: $('#loginName').value.trim(),
+      passwd: $('#passwd').value,
+      captcha: $('#captcha').value.trim(),
+    });
+    const r = await fetch(API + '/services/v1/user/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    const j = await r.json();
+    if (!j.success) {
+      errEl.textContent = j.msg || '登录失败';
+      await loadCaptcha();
+      $('#captcha').value = '';
+      return;
+    }
+    setLoggedIn(j.data['x-auth-token']);
+    await loadTree();
+  } catch (e) {
+    errEl.textContent = '网络错误：' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadTree() {
+  if (!TOKEN) return;
+  const r = await fetch(API + '/services/v1/dimension/tree', {
+    headers: { 'x-auth-token': TOKEN },
+  });
+  const j = await r.json();
+  if (!j.success) {
+    if (j.code === '601' || j.code === '602' || j.code === '603') {
+      setLoggedIn('');
+      $('#login-err').textContent = 'token 失效：' + j.msg;
+      return;
+    }
+    toast('加载失败：' + j.msg, 'err');
+    return;
+  }
+  treeData = j.data.tree || [];
+  $('#data-ts').textContent = new Date().toLocaleTimeString();
+  const totalScenes = treeData.reduce((s, bl) => s + bl.sceneCount, 0);
+  const totalModels = treeData.reduce((s, bl) => s + (bl.modelCount||0), 0);
+  $('#tree-stat').textContent = treeData.length + ' 业务线 · ' + totalScenes + ' 场景 · ' + totalModels + ' 模型';
+  renderTree();
+}
+
+function renderTree() {
+  const el = $('#tree');
+  el.innerHTML = '';
+  const ul = document.createElement('ul');
+  treeData.forEach((bl) => ul.appendChild(renderBl(bl, true)));
+  el.appendChild(ul);
+}
+
+function renderBl(bl, expanded) {
+  const li = document.createElement('li');
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.dataset.kind = 'bl';
+  row.dataset.code = bl.code;
+  row.innerHTML = `<span class="caret ${expanded?'open':''}">▶</span>
+                   <span class="label">${bl.name}</span>
+                   <span class="count">${bl.sceneCount} 场景</span>`;
+  const childrenEl = document.createElement('ul');
+  childrenEl.className = 'children';
+  childrenEl.style.display = expanded ? '' : 'none';
+  (bl.children || []).forEach((sc) => childrenEl.appendChild(renderScene(sc, bl)));
+  row.addEventListener('click', (ev) => {
+    if (ev.target.classList.contains('caret')) {
+      ev.target.classList.toggle('open');
+      childrenEl.style.display = ev.target.classList.contains('open') ? '' : 'none';
+      return;
+    }
+    $$('.row.selected').forEach(e => e.classList.remove('selected'));
+    row.classList.add('selected');
+    showBlDetail(bl);
+  });
+  li.appendChild(row);
+  li.appendChild(childrenEl);
+  return li;
+}
+
+function renderScene(sc, bl) {
+  const li = document.createElement('li');
+  const row = document.createElement('div');
+  row.className = 'row empty-caret';
+  row.dataset.kind = 'scene';
+  row.dataset.id = sc.id;
+  row.innerHTML = `<span class="caret"></span>
+                   <span class="label">${sc.name}</span>
+                   <span class="count">${sc.modelCount||0} 模型</span>`;
+  row.addEventListener('click', () => {
+    $$('.row.selected').forEach(e => e.classList.remove('selected'));
+    row.classList.add('selected');
+    showSceneDetail(sc, bl);
+  });
+  li.appendChild(row);
+  return li;
+}
+
+function showBlDetail(bl) {
+  currentScene = null;
+  $('#detail-empty').hidden = true;
+  $('#detail-bl').hidden = false;
+  $('#detail-scene').hidden = true;
+  $('#detail-title').textContent = '业务线详情';
+  $('#bl-name').textContent = bl.name;
+  $('#bl-code').textContent = bl.code;
+  $('#bl-scene-count').textContent = bl.sceneCount;
+  $('#bl-model-count').textContent = bl.modelCount || 0;
+}
+
+function showSceneDetail(sc, bl) {
+  currentScene = { scene: sc, bl };
+  $('#detail-empty').hidden = true;
+  $('#detail-bl').hidden = true;
+  $('#detail-scene').hidden = false;
+  $('#detail-title').textContent = '场景详情';
+  $('#sc-type').textContent = '场景 · ' + (bl?bl.name:'');
+  $('#sc-name').textContent = sc.name;
+  $('#sc-code').textContent = sc.code;
+  $('#sc-bline').textContent = bl ? bl.name : sc.businessLine;
+  $('#sc-status').innerHTML = `<span class="status-tag ${STATUS_CLS[sc.status]}">${STATUS_TEXT[sc.status]||sc.status}</span>`;
+  $('#sc-sort').textContent = sc.sort;
+  $('#create-area').innerHTML = ''; // hide any open form
+  loadModelsForScene(sc);
+}
+
+async function loadModelsForScene(sc) {
+  const tbody = $('#model-tbody');
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="6">加载中…</td></tr>';
+  $('#sc-model-count').textContent = '';
+  try {
+    const r = await fetch(API + '/services/v1/model', {
+      method: 'POST',
+      headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageNo: 1, pageSize: 100, sceneId: sc.id }),
+    });
+    const j = await r.json();
+    if (!j.success) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">加载失败：${j.msg}</td></tr>`;
+      return;
+    }
+    currentModels = (j.data.page && j.data.page.list) || [];
+    $('#sc-model-count').textContent = currentModels.length + ' 个';
+    renderModelTable();
+  } catch (e) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">网络错误：${e.message}</td></tr>`;
+  }
+}
+
+function renderModelTable() {
+  const tbody = $('#model-tbody');
+  if (currentModels.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">该场景下还没有模型</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  currentModels.forEach(m => {
+    const tr = document.createElement('tr');
+    const updated = m.updateTime ? new Date(m.updateTime).toLocaleString() : '-';
+    tr.innerHTML = `
+      <td>${escapeHtml(m.label)}</td>
+      <td>${escapeHtml(m.modelName||'-')}</td>
+      <td><span class="status-tag ${STATUS_CLS[m.status]}">${STATUS_TEXT[m.status]||m.status}</span></td>
+      <td>${m.template ? '是' : '否'}</td>
+      <td>${updated}</td>
+      <td><button class="btn danger" data-del="${m.id}" data-name="${escapeAttr(m.label)}">删除</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => deleteModel(b.dataset.del, b.dataset.name));
+  });
+}
+
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+let templateList = null; // cached system templates
+
+async function loadTemplates() {
+  if (templateList) return templateList;
+  try {
+    const r = await fetch(API + '/services/v1/model/list/template', {
+      headers: { 'x-auth-token': TOKEN },
+    });
+    const j = await r.json();
+    templateList = (j.success && j.data.modelList) || [];
+  } catch (e) {
+    templateList = [];
+  }
+  return templateList;
+}
+
+function showCreateForm() {
+  if (!currentScene) return;
+  const { scene, bl } = currentScene;
+  const area = $('#create-area');
+  const typeOptions = ['STRING', 'INTEGER', 'LONG', 'DOUBLE']
+    .map(t => `<option value="${t}">${t}</option>`).join('');
+  area.innerHTML = `
+    <div class="create-form">
+      <div class="tabs">
+        <div class="tab active" data-tab="tpl">从系统模板创建</div>
+        <div class="tab" data-tab="blank">空白新建</div>
+      </div>
+
+      <div id="tab-tpl">
+        <div class="row">
+          <label>系统模板 *</label>
+          <select id="cf-template" style="flex:1"><option value="">加载中…</option></select>
+        </div>
+        <div class="row">
+          <label>显示名 *</label>
+          <input id="cf-tpl-label" type="text" placeholder="例：营销防刷-拉新">
+        </div>
+        <div class="step-note">复用后端 /model/copy：字段、预处理、规则等子配置整套拷贝，再挂到当前场景。</div>
+      </div>
+
+      <div id="tab-blank" hidden>
+        <div class="row"><label>显示名 *</label><input id="cf-label" type="text" placeholder="例：营销防刷-拉新"></div>
+        <div class="row"><label>编码</label><input id="cf-code" type="text" placeholder="留空自动生成 model{id}"></div>
+        <div class="row">
+          <label>实体字段 *</label>
+          <input id="cf-entity" type="text" placeholder="如 deviceId">
+          <input id="cf-entity-label" type="text" placeholder="显示名（可中文）" style="max-width:130px">
+          <select id="cf-entity-type">${typeOptions}</select>
+        </div>
+        <div class="row">
+          <label>事件ID字段 *</label>
+          <input id="cf-entry" type="text" placeholder="如 eventId">
+          <input id="cf-entry-label" type="text" placeholder="显示名（可中文）" style="max-width:130px">
+          <select id="cf-entry-type">${typeOptions}</select>
+        </div>
+        <div class="row">
+          <label>事件时间字段 *</label>
+          <input id="cf-refdate" type="text" placeholder="如 accessTime">
+          <input id="cf-refdate-label" type="text" placeholder="显示名（可中文）" style="max-width:130px">
+          <select disabled title="事件时间类型固定为长整数"><option>LONG</option></select>
+        </div>
+        <div class="step-note">与原前端一致：建模型后自动创建实体 / 事件ID / 事件时间三个系统字段（均索引）。</div>
+      </div>
+
+      <div class="row"><label>归属</label>
+        <span style="font-size:12px;color:var(--fg)">${escapeHtml(bl.name)} / ${escapeHtml(scene.name)}</span>
+      </div>
+      <div id="cf-err" class="err"></div>
+      <div class="actions">
+        <button class="btn primary" id="cf-submit">提交</button>
+        <button class="btn" id="cf-cancel">取消</button>
+      </div>
+    </div>
+  `;
+  area.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      area.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      $('#tab-tpl').hidden = t.dataset.tab !== 'tpl';
+      $('#tab-blank').hidden = t.dataset.tab !== 'blank';
+    });
+  });
+  $('#cf-cancel').addEventListener('click', () => { area.innerHTML = ''; });
+  $('#cf-submit').addEventListener('click', submitCreate);
+  loadTemplates().then(list => {
+    const sel = $('#cf-template');
+    sel.innerHTML = list.length
+      ? list.map(t => `<option value="${t.id}">[系统]${escapeHtml(t.label)}</option>`).join('')
+      : '<option value="">（无可用模板）</option>';
+  });
+  $('#cf-tpl-label').focus();
+}
+
+const NAME_RE = /^[a-zA-Z][a-zA-Z0-9_]{1,29}$/;
+
+async function submitCreate() {
+  const errEl = $('#cf-err');
+  errEl.textContent = '';
+  const isTpl = !$('#tab-tpl').hidden;
+  const { scene, bl } = currentScene;
+  const btn = $('#cf-submit');
+  btn.disabled = true;
+  try {
+    let modelId;
+    if (isTpl) {
+      // —— 路径 A：复用 /model/copy（连子表整套拷贝），再把新模型挂到当前场景 ——
+      const tplId = $('#cf-template').value;
+      const label = $('#cf-tpl-label').value.trim();
+      if (!tplId) { errEl.textContent = '请选择系统模板'; return; }
+      if (!label) { errEl.textContent = '请填写显示名'; return; }
+      const r = await fetch(API + '/services/v1/model/copy', {
+        method: 'POST',
+        headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(tplId), modelName: '', label }),
+      });
+      const j = await r.json();
+      if (!j.success) { errEl.textContent = j.msg || '模板复制失败'; return; }
+      modelId = j.data.id;
+      const r2 = await fetch(API + '/services/v1/model', {
+        method: 'PUT',
+        headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: modelId, label, businessLine: bl.code, sceneId: scene.id }),
+      });
+      const j2 = await r2.json();
+      if (!j2.success) { errEl.textContent = '模型已建但挂场景失败：' + j2.msg; return; }
+      toast('已从模板创建并挂到 ' + scene.name, 'ok');
+    } else {
+      // —— 路径 B：空白新建（与原前端一致：建模型 → 补三个系统字段） ——
+      const label = $('#cf-label').value.trim();
+      const entityName = $('#cf-entity').value.trim();
+      const entryName = $('#cf-entry').value.trim();
+      const referenceDate = $('#cf-refdate').value.trim();
+      if (!label) { errEl.textContent = '请填写显示名'; return; }
+      for (const [v, n] of [[entityName,'实体字段'],[entryName,'事件ID字段'],[referenceDate,'事件时间字段']]) {
+        if (!NAME_RE.test(v)) { errEl.textContent = n + '需 2-30 位英文字母开头的字母/数字/下划线'; return; }
+      }
+      if (entryName === entityName) { errEl.textContent = '事件ID不能与实体名相同'; return; }
+      if (referenceDate === entityName || referenceDate === entryName) { errEl.textContent = '事件时间不能与实体名/事件ID相同'; return; }
+      const payload = {
+        label, entityName, entryName, referenceDate,
+        businessLine: bl.code, sceneId: scene.id,
+      };
+      const code = $('#cf-code').value.trim();
+      if (code) payload.modelName = code;
+      const r = await fetch(API + '/services/v1/model', {
+        method: 'PUT',
+        headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (!j.success) { errEl.textContent = j.msg || '保存失败'; return; }
+      modelId = j.data.id;
+      // 原前端同款：三个系统字段（indexed）
+      const fields = [
+        { fieldName: entityName,   label: $('#cf-entity-label').value.trim() || entityName,   fieldType: $('#cf-entity-type').value, indexed: true },
+        { fieldName: entryName,    label: $('#cf-entry-label').value.trim() || entryName,     fieldType: $('#cf-entry-type').value,  indexed: true },
+        { fieldName: referenceDate,label: $('#cf-refdate-label').value.trim() || referenceDate, fieldType: 'LONG',                  indexed: true },
+      ];
+      for (const f of fields) {
+        const fr = await fetch(API + '/services/v1/field/', {
+          method: 'PUT',
+          headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ modelId, ...f }),
+        });
+        const fj = await fr.json();
+        if (!fj.success) { toast('字段 ' + f.fieldName + ' 创建失败：' + fj.msg, 'err'); }
+      }
+      toast('已创建模型 + 3 个系统字段', 'ok');
+    }
+    $('#create-area').innerHTML = '';
+    await loadModelsForScene(scene);
+    await loadTree();
+  } catch (e) {
+    errEl.textContent = '网络错误：' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteModel(id, name) {
+  if (!confirm(`确定删除模型「${name}」？\n注：只删 engine_model 主表记录，已配置的前置/规则/抽象等子数据不会被级联清理。`)) return;
+  try {
+    const r = await fetch(API + '/services/v1/model', {
+      method: 'DELETE',
+      headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify([Number(id)]),
+    });
+    const j = await r.json();
+    if (!j.success) { toast('删除失败：' + j.msg, 'err'); return; }
+    toast('已删除', 'ok');
+    if (currentScene) {
+      await loadModelsForScene(currentScene.scene);
+      await loadTree();
+    }
+  } catch (e) {
+    toast('网络错误：' + e.message, 'err');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadCaptcha();
+  $('#captcha-img').addEventListener('click', loadCaptcha);
+  $('#btn-do-login').addEventListener('click', doLogin);
+  $('#captcha').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  $('#passwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  $('#btn-refresh').addEventListener('click', loadTree);
+  $('#btn-logout').addEventListener('click', () => { setLoggedIn(''); loadCaptcha(); });
+  $('#btn-show-create').addEventListener('click', showCreateForm);
+
+  if (TOKEN) {
+    setLoggedIn(TOKEN);
+    loadTree().catch(() => setLoggedIn(''));
+  }
+});
+</script>
+</body>
+</html>
