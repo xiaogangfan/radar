@@ -1,9 +1,9 @@
 /**
  * manual-entry.js — 「使用手册」入口（radar-admin 原前端增强）
  *
- * 两处入口，都打开内置图文版模型配置使用手册（/manual.html）：
- *   1. 顶栏通栏右上角 —— 所有页面通用（同时隐藏原来的 GVP 徽标）
- *   2. 模型列表页（#/modelList）工具栏右侧，与「新建模型」同一行
+ * 单一入口，打开内置图文版模型配置使用手册（/manual.html）：
+ *   顶栏通栏右上角 —— 所有页面通用（同时隐藏原来的 GVP 徽标）
+ * 说明：早先在模型列表页工具栏也注入过一个同名按钮，与顶栏重复，已移除。
  *
  * 以静态资源方式打进 BOOT-INF/classes/static/，由 index.html 引入。
  * 不修改 main.js；移除 index.html 中对本文件的引用即可整体下线。
@@ -26,16 +26,11 @@
     '#rd-manual:hover{background:linear-gradient(135deg,#1890ff,#096dd9);border-color:#1890ff;',
     'box-shadow:0 2px 8px rgba(24,144,255,.35);}',
     '#rd-manual .rd-m-ico{color:#1890ff;font-size:15px;display:flex;align-items:center;margin-right:6px;}',
-    '#rd-manual .rd-m-txt{font-size:13px;color:#096dd9;font-weight:500;letter-spacing:.5px;}',
-    'form.rd-ml-form{display:flex;align-items:center;flex-wrap:wrap;}',
-    'form.rd-ml-form > .ant-form-item{flex:0 0 auto;}',
-    '.rd-ml-item{margin-left:auto !important;}',
-    '.rd-ml-btn{display:inline-flex;align-items:center;}',
-    '.rd-ml-btn .rd-m-ico{margin-right:6px;font-size:14px;}'
+    '#rd-manual .rd-m-txt{font-size:13px;color:#096dd9;font-weight:500;letter-spacing:.5px;}'
   ].join('');
 
   function openManual() {
-    window.open('/manual.html?v=4', '_blank');
+    window.open('/manual.html?v=5', '_blank');
   }
 
   function ensureStyle() {
@@ -100,62 +95,17 @@
     return true;
   }
 
-  // ---- 模型列表页：在「新建模型」右侧再加一个页面级入口 ----
-
-  function onModelList() {
-    return /^#\/modelList/.test(location.hash || '');
-  }
-
-  function removePageBtn() {
-    var b = document.getElementById('rd-manual-page');
-    if (b && b.parentElement) b.parentElement.removeChild(b);
-    var f = document.querySelector('form.rd-ml-form');
-    if (f) f.classList.remove('rd-ml-form');
-  }
-
-  function injectPage() {
-    if (!onModelList()) { removePageBtn(); return false; }
-    if (document.getElementById('rd-manual-page')) return true;
-
-    var btns = document.querySelectorAll('button');
-    var build = null;
-    for (var i = 0; i < btns.length; i++) {
-      if (/新建模型/.test(btns[i].innerText || '')) { build = btns[i]; break; }
-    }
-    if (!build) return false;
-    var form = build.closest('form');
-    if (!form) return false;
-
-    ensureStyle();
-    form.classList.add('rd-ml-form');
-
-    var item = document.createElement('div');
-    item.className = 'ant-form-item rd-ml-item';
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'rd-manual-page';
-    btn.className = 'ant-btn ant-btn-default rd-ml-btn';
-    btn.title = '查看模型配置使用手册（图文版）';
-    btn.innerHTML = '<span class="rd-m-ico">' + ICON_BOOK + '</span>使用手册';
-    btn.addEventListener('click', openManual);
-    item.appendChild(btn);
-    form.appendChild(item);
-    return true;
-  }
-
   // React 渲染是异步的，轮询等待顶栏出现
   var tries = 0;
   (function wait() {
     inject();
-    injectPage();
     if (++tries < 100) setTimeout(wait, 200);
   })();
 
-  // SPA 路由切换（#/modelList ↔其它页面）后同步页面级按钮；顺带持续隐藏 GVP 徽标
+  // SPA 路由切换后顶栏会被重建；顺带持续隐藏 GVP 徽标
   if (window.__RMANUAL_TIMER__) clearInterval(window.__RMANUAL_TIMER__);
   window.__RMANUAL_TIMER__ = setInterval(function () {
     inject();
-    injectPage();
     hideGvpBadge();
   }, 800);
 })();

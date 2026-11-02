@@ -285,11 +285,11 @@
   <h2>模型配置操作手册（图文版）</h2>
   <p>以一个完整可跑的实例贯穿：<span class="hl">电商登录防撞库 ——「同 IP 10 分钟内用 ≥3 个设备登录就拒绝」</span>。每一步都配后台真实截图，照着点就能配出来。</p>
   <div class="meta">
-    <span class="chip">后台地址 <b>http://127.0.0.1:6581</b></span>
+    <span class="chip">后台地址 <b>http://127.0.0.1:6580</b>（以实际部署为准）</span>
+    <span class="chip">引擎地址 <b>http://127.0.0.1:6581</b>（以实际部署为准）</span>
     <span class="chip">默认账号 <b>admin / 123456</b></span>
-    <span class="chip">配置顺序 <b>字段 → 预处理 → 名单 → 抽象 → 规则 → 策略</b></span>
-    <span class="chip">版本 <b>v1.1</b></span>
-    <span class="chip">更新 <b>2026-10-27</b></span>
+    <span class="chip">版本 <b>v1.2</b></span>
+    <span class="chip">更新 <b>2026-10-29</b></span>
   </div>
   <div class="paths">
     <a href="#s03"><b>① 我要配一个策略</b><span>从 Step 1 开始，6 步走完就是一条能上线的规则</span></a>
@@ -309,7 +309,6 @@
   <span class="alias" id="s0"></span>
   <div class="eyebrow"><span class="st">速查</span><span class="dim">读 5 分钟，后面每个 Step 都会回到这些词</span></div>
   <h3><span class="chap">01</span>术语表</h3>
-  <p>先扫一眼这张表，后面每个 Step 都会回到这些词。</p>
 
   <h4>配置对象</h4>
   <div class="tbl-wrap"><table>
@@ -328,7 +327,7 @@
     <tr><td>策略 Activation</td><td>一组规则的集合 + 阈值，可整体启停；一次请求可命中多个策略</td><td>「登录异常」</td></tr>
   </table></div>
 
-  <h4>打分字段（规则表单里的 6 项）</h4>
+  <h4>打分相关字段（规则表单）</h4>
   <div class="tbl-wrap"><table>
     <tr><th>术语</th><th>解释</th></tr>
     <tr><td>初始得分</td><td>规则命中即给的<b>固定底分</b>，任何操作符都影响不到它</td></tr>
@@ -343,8 +342,8 @@
   <h4>运行时</h4>
   <div class="tbl-wrap"><table>
     <tr><th>术语</th><th>解释</th></tr>
-    <tr><td>管理端 Admin</td><td>端口 6581，负责配置；改完经 Redis 发布订阅<b>热推</b>给引擎，不用重启</td></tr>
-    <tr><td>引擎 Engine</td><td>端口 6582，对外提供 <code>/services/v1/upload</code>、<code>/getScore</code> 等实时决策接口</td></tr>
+    <tr><td>管理端 Admin</td><td>端口 6580，负责配置；改完经 Redis 发布订阅（频道 <code>radar_channel_rule</code>）<b>热推</b>给引擎，不用重启</td></tr>
+    <tr><td>引擎 Engine</td><td>端口 6581，对外提供 <code>/services/v1/upload</code>、<code>/getScore</code> 等实时决策接口</td></tr>
     <tr><td>GUID</td><td>模型的对外调用标识（不是数字 ID）</td></tr>
     <tr><td>reqId / eventId</td><td>请求流水号 / 事件流水号，用于<b>幂等</b>：同一个 ID 重复上报只处理一次</td></tr>
     <tr><td>抽象值 <code>-1</code></td><td>该指标被过滤条件挡掉，表示「本次不统计」；它会原样参与规则运算</td></tr>
@@ -360,7 +359,7 @@
     <tr><td>4</td><td>规则 + 指标字段</td><td>过滤条件 <code>设备数 ≥ 3</code> 命中 → 初始得分 <b>100</b></td></tr>
     <tr><td>5</td><td>策略 + 阈值</td><td>总分 100 ≥ 拒绝值 80 → <b>reject</b></td></tr>
   </table></div>
-  <blockquote><b>一句话记忆</b>：字段进 → 预处理加工 → 名单先拦 → 抽象算数 → 规则打分 → 策略定级。</blockquote>
+  <blockquote><b>一句话记忆</b>：字段进 → 预处理加工 → 名单先拦 → 抽象算数 → 规则打分 → 策略定级。业务方传事件 → 抽象算出「这个 IP 10 分钟登录了几次」→ 规则比较「≥3 次？加 100 分」→ 策略把总分和 40/80 比 → 出 <code>pass / review / reject</code>。</blockquote>
 </section>
 
 <!-- ===== 02 一个模型由 5 个 tab 配出来 ===== -->
@@ -368,7 +367,7 @@
   <span class="alias" id="s1"></span>
   <div class="eyebrow"><span class="st">总览</span><span class="dim">先建立全局图，再动手</span></div>
   <h3><span class="chap">02</span>一个模型由 5 个 tab 配出来</h3>
-  <p>进入「首页 → 电商 → 营销防刷」点开任意模型，右侧就是 5 个 tab：</p>
+  <p>在「模型列表」找到目标模型，点操作列的「进入模型」，从左到右是 5 个 tab：<b>字段管理、预处理管理、黑/白名单管理、抽象处理、策略管理</b>：</p>
   <div class="img-wrap"><img src="/manual-img/01-model-list.png" width="3360" height="2100" alt="模型列表" loading="lazy"></div>
   <div class="img-cap"><b>图 1</b> 模型列表页</div>
   <p>配置顺序固定为：<b>字段 → 预处理 → 黑/白名单 → 抽象 → 规则 → 策略</b>，前面的输出是后面的输入：</p>
@@ -376,18 +375,16 @@
   <div class="flow">
     <div class="node"><div class="t">字段管理</div><div class="d">定义模型认识哪些字段</div></div>
     <div class="arr">→</div>
-    <div class="node"><div class="t">预处理管理</div><div class="d">原始字段加工 / 名单过滤</div></div>
+    <div class="node"><div class="t">预处理管理</div><div class="d">原始字段加工</div></div>
+    <div class="arr">→</div>
+    <div class="node"><div class="t">黑/白名单管理</div><div class="d">值的集合，条件里引用</div></div>
     <div class="arr">→</div>
     <div class="node"><div class="t">抽象处理</div><div class="d">算滑窗统计指标</div></div>
     <div class="arr">→</div>
-    <div class="node"><div class="t">规则</div><div class="d">指标 ≥ 阈值 → 加分</div></div>
-    <div class="arr">→</div>
-    <div class="node"><div class="t">策略管理</div><div class="d">分数 vs 预警/拒绝值</div></div>
+    <div class="node"><div class="t">策略管理</div><div class="d">规则打分 + 阈值定级</div></div>
     <div class="arr">→</div>
     <div class="node gate"><div class="t">激活</div><div class="d">引擎实时生效</div></div>
   </div>
-
-  <p><b>核心逻辑一句话</b>：业务方传事件 → 抽象算出"这个 IP 10 分钟登录了几次" → 规则比较"≥3 次？加 100 分" → 策略把总分和 40/80 比 → 出 <code>pass / review / reject</code>。</p>
 </section>
 
 <!-- ===== 03 新建模型 + 配字段 ===== -->
@@ -464,7 +461,7 @@
   <b>③ 保存后自动生成</b>：</p>
 <pre data-lang="groovy"><code><span class="k">if</span> (<span class="n">lists</span>.dataList_86.containsKey(<span class="n">data</span>.fields.mobile))</code></pre>
   <blockquote>放抽象条件里 = 硬前置过滤（不命中该指标直接置 <code>-1</code> 跳过）；放规则里 = 命中后加分或直接 reject。<br>
-  <code>MODEL_ID=1</code> 的系统名单（如 <code>radar_mobile_black_list</code>）会自动合并进所有模型，可跨模型共用。</blockquote>
+  挂在模型 1 下的系统名单（如 <code>radar_mobile_black_list</code>、<code>radar_ip_black_list</code>）会自动合并进所有模型，可跨模型共用（合并逻辑见 <code>DataListsServiceImpl#init</code>）。</blockquote>
 </section>
 
 <!-- ===== 06 抽象处理 ===== -->
@@ -472,10 +469,10 @@
   <span class="alias" id="s6"></span>
   <div class="eyebrow"><span class="st">Step 4 / 6</span><span class="dim">算数 · 把事件流压成滑窗指标</span></div>
   <h3><span class="chap">06</span>抽象处理（本例的核心）</h3>
-  <p>抽象 = 把「原始事件流」压缩成「滑窗统计值」。列表里的 13 个指标就是风控的"仪表盘"：</p>
+  <p>抽象 = 把「原始事件流」压缩成「滑窗统计值」。列表里的 14 个指标就是风控的"仪表盘"：</p>
   <div class="img-wrap"><img src="/manual-img/06-tab-abstraction.png" width="3360" height="2100" alt="抽象处理" loading="lazy"></div>
   <div class="img-cap"><b>图 6</b> 抽象处理（14 个滑窗指标）</div>
-  <p>每条指标点进去是一个表单，关键字段如下。<b>本实例要新增第一条</b>：</p>
+  <p>点列表底部的「新增」，会出现一张可编辑卡片，关键表单项如下。<b>本实例要新增的就是这条</b>：</p>
   <div class="tbl-wrap"><table>
     <tr><th>表单项</th><th>本例的值</th><th>含义</th></tr>
     <tr><td>指标名</td><td><code>10分钟内IP关联设备数</code>（引擎里叫 <code>log_did_ip_10_min_qty</code>）</td><td>规则引用时用这个名字</td></tr>
@@ -516,13 +513,14 @@
     <tr><th>表单项</th><th>本例的值</th><th>作用</th></tr>
     <tr><td>显示名称</td><td>10分钟内IP关联设备数大于等于3</td><td></td></tr>
     <tr><td>初始得分</td><td>100</td><td>命中即给的固定底分</td></tr>
+    <tr><td>操作符</td><td>乘</td><td>无 / 加 / 减 / 乘 / 除</td></tr>
     <tr><td>命中基数</td><td>0</td><td>与指标值做运算的左操作数</td></tr>
-    <tr><td>操作符</td><td>无</td><td>无 / 加 / 减 / 乘 / 除</td></tr>
-    <tr><td>指标字段</td><td>不填</td><td>参与运算的变量（字段或抽象）</td></tr>
+    <tr><td>指标字段</td><td><code>log_did_ip_10_min_qty</code></td><td>参与运算的变量（字段或抽象）</td></tr>
     <tr><td>比率</td><td>100</td><td>百分数，100 = 1.0×</td></tr>
     <tr><td>最大值</td><td>0</td><td>本条规则分数上限，<b>0 = 不封顶</b></td></tr>
     <tr><td>过滤条件</td><td><code>abstractions.log_did_ip_10_min_qty &gt;= 3</code></td><td>不命中则该规则 0 分</td></tr>
   </table></div>
+  <blockquote>为什么操作符选「乘」、基数填 0？——因为「是否 ≥3 台设备」已经由过滤条件判断了，规则只需要给固定 100 分：<code>100 + 0 × (V × 100%) = 100</code>。如果想让指标值参与加减分（比如设备数越多分越高），就用「加」或「乘」并把基数填 1。</blockquote>
 
   <h4>7.3 打分公式</h4>
   <p>引擎按下面这条式子算每条规则的得分（源码 <code>AntiFraudEngineImpl</code>）：</p>
@@ -536,7 +534,7 @@
   <p>四种操作符（V = 指标字段值，R = 比率）：</p>
   <div class="tbl-wrap"><table>
     <tr><th>操作符</th><th>规则得分</th><th>适用</th></tr>
-    <tr><td>无</td><td><code>初始得分</code></td><td>命中即固定分，指标字段被禁用</td></tr>
+    <tr><td>无</td><td><code>初始得分</code></td><td>命中即固定分。注意：<b>选「无」时请把指标字段留空</b>——若填了指标字段，引擎仍会按 <code>初始得分 + V×R%</code> 计分</td></tr>
     <tr><td>加</td><td><code>初始得分 + 命中基数 + V×R%</code></td><td>指标越大分越高</td></tr>
     <tr><td>减</td><td><code>初始得分 + 命中基数 − V×R%</code></td><td>指标越大分越低</td></tr>
     <tr><td>乘</td><td><code>初始得分 + 命中基数 × V×R%</code></td><td>基数当系数，最常用</td></tr>
@@ -545,13 +543,13 @@
   <p><b>三个算例</b></p>
   <div class="tbl-wrap"><table>
     <tr><th>场景</th><th>配置</th><th>计算</th><th>结果</th></tr>
-    <tr><td>本例（二值）</td><td>初始 100 / 操作符 无</td><td><code>100</code></td><td>≥80 → reject；不命中 → 0 → pass</td></tr>
+    <tr><td>本例（二值）</td><td>初始 100 / 乘 / 基数 0</td><td><code>100 + 0×V</code></td><td>≥80 → reject；不命中 → 0 → pass</td></tr>
     <tr><td>236 线上规则</td><td>初始 20 / 基数 1 / 乘 / 比率 100 / 指标「1天内IP关联用户数」=13</td><td><code>20 + 1×13</code></td><td>33 → review</td></tr>
     <tr><td>梯度打分</td><td>A 规则 ≥3 台加 60，B 规则 ≥10 台再加 50</td><td><code>60</code> 或 <code>60+50</code></td><td>命中 A → review，A+B → reject</td></tr>
   </table></div>
   <blockquote class="warn"><b>四个坑</b>：<br>
   1）<b>最大值 0 是不封顶</b>，不是 0 分；要限制上限就填正数。<br>
-  2）<b>乘 + 命中基数 0 是死配置</b>：<code>0 × 任何值 = 0</code>，指标字段白配。<br>
+  2）<b>乘 + 命中基数 0 = 指标不参与计分</b>：<code>0 × 任何值 = 0</code>，得分恒为初始得分。本例是故意这样配（阈值判断交给过滤条件）；如果你本意是「按指标大小加分」，这就是配错了。<br>
   3）<b>除没有除零保护</b>：<code>V×R%</code> 为 0 时抛异常，整个请求 500。<br>
   4）<b>被抽象过滤掉的事件，指标值是 <code>-1</code></b>：会原样参与运算（乘 → 扣分）。</blockquote>
 </section>
@@ -566,7 +564,7 @@
   <h4>8.2 单发验证</h4>
   <p>下面这条 curl 就是模型 236（电商-营销防刷）的<b>真实调用</b>（GUID 取自「模型列表接口」），可直接复制执行：</p>
 <pre data-lang="bash"><code>TS=$(date +%s)000   <span class="c"># 毫秒时间戳；macOS 的 BSD date 不支持 %3N，直接补三个 0</span>
-curl -s -X POST http://127.0.0.1:6582/services/v1/upload \
+curl -s -X POST http://127.0.0.1:6581/services/v1/upload \
   -H <span class="s">'Content-Type: application/json'</span> \
   -d <span class="s">"{
     \"guid\": \"E48E20E0-4B47-4152-B21D-486F1C51500B\",
@@ -574,14 +572,15 @@ curl -s -X POST http://127.0.0.1:6582/services/v1/upload \
     \"jsonInfo\": {
       \"loginTime\": ${TS},
       \"userId\": \"u1\", \"eventId\": \"evt-1\",
-      \"userIP\": \"9.9.9.9\", \"deviceId\": \"d1\",
+      \"userIP\": \"223.5.5.5\", \"deviceId\": \"d1\",
       \"mobile\": \"13800000001\",
       \"passwd\": \"x\", \"os\": \"app\", \"channel\": \"app\"
     }
   }"</span></code></pre>
+  <blockquote class="warn">示例用 <b>114.114.114.114</b>（国内 IP）。若用国外 IP（如 <code>7.7.7.7</code>、<code>9.9.9.9</code>），会额外命中模板自带的规则「IP登录位置显示国外」+20 分——分数比预期高 20 不是配错了。</blockquote>
   <blockquote><b>loginTime 怎么填</b>：必须是 <b>13 位毫秒时间戳</b>（纯数字、不加引号）——10 位秒会被当成 1970 年，抽象窗口全部落空、分数恒为 0。<br>
   滑窗是<b>以事件自己的 loginTime 为基准往前取</b>（实测：把 loginTime 写成 1 小时前，同 IP 换 3 设备照样触发 reject/100）。所以复现场景时<b>整批请求用同一个值</b>即可，不必每次重算。</blockquote>
-  <p>实测返回（首次必然 pass，因为 Mongo 里还没有这个 IP 的历史；<code>abstractions</code> 是 14 个滑窗指标，此处节选）：</p>
+  <p>实测返回（全新 IP 首次调用：所有指标都是 1，无历史可统计，pass / 0 分；<code>abstractions</code> 共 14 个指标，此处节选）：</p>
 <pre data-lang="json"><code>{"success":true,"msg":"","code":"100","data":{},
  "abstractions":{"log_ip_10_min_qty":1,"log_did_ip_10_min_qty":1, ...},
  "activations":{"login_exception":{"risk":"pass","score":0}},
@@ -594,7 +593,7 @@ curl -s -X POST http://127.0.0.1:6582/services/v1/upload \
   "msg": "",              <span class="c">// 失败原因（模型不存在 / 参数校验不通过 / 时间不正确）</span>
   "code": "100",          <span class="c">// 业务码，100 = 成功</span>
   "data": {},             <span class="c">// 校验失败时才有内容（哪个字段不合法）</span>
-  "abstractions": {       <span class="c">// ★ 抽象层：14 个滑窗指标，值 = 窗口内满足条件的量</span>
+  "abstractions": {       <span class="c">// ★ 抽象层：14 个滑窗指标；值随库中历史而变，右侧仅为示例</span>
     "log_ip_1_day_qty": 4,       <span class="c">// 同 userIP 近 1 天登录次数 → 4</span>
     "log_uid_1_day_qty": 3,      <span class="c">// 同 userId 近 1 天登录次数 → 3</span>
     "log_did_ip_1_day_qty": 3,   <span class="c">// 同 userIP 近 1 天几个不同 deviceId → 3</span>
@@ -615,12 +614,12 @@ curl -s -X POST http://127.0.0.1:6582/services/v1/upload \
   <blockquote class="warn"><b>⚠️ 看到"1 天有值、1 小时和 10 分钟全是 0"别以为配错了</b>——通常说明<b>本次事件没入库</b>。<code>entity_236</code> 以 <code>eventId</code> 去重：同一 <code>eventId</code> 重复提交只留第一条，后续直接丢弃。事件没写进去，滑窗自然查不到它自己。<br>
   实测：用 §8.2 的参数再跑一次（<code>eventId</code> 仍是 <code>evt-1</code>），返回与第一次完全一致，<code>1_hour</code>/<code>10_min</code> 恒为 0、<code>1_day</code> 仍是 4（历史数据）。<b>验证时每次都要换 eventId</b>，否则会误判成"规则没生效"。</blockquote>
   <h4>8.3 复现攻击场景</h4>
-  <p>同一 IP 换 3 个设备连打 3 次（注意每次换 <code>deviceId</code> 和 <code>eventId</code>；用全新 IP <code>7.7.7.7</code> 避免和历史数据混淆）：</p>
+  <p>同一 IP 换 3 个设备连打 3 次（注意每次换 <code>deviceId</code> 和 <code>eventId</code>；用全新的国内 IP <code>114.114.114.114</code>，和 §8.2 分开，避免历史数据干扰）：</p>
 <pre data-lang="bash"><code>GUID="E48E20E0-4B47-4152-B21D-486F1C51500B"; TS=$(date +%s)000
 for i in 1 2 3; do
-curl -s -X POST http://127.0.0.1:6582/services/v1/upload -H <span class="s">'Content-Type: application/json'</span> \
+curl -s -X POST http://127.0.0.1:6581/services/v1/upload -H <span class="s">'Content-Type: application/json'</span> \
   -d <span class="s">"{\"guid\": \"$GUID\",\"reqId\": \"demo-$i\",\"jsonInfo\": {\"loginTime\": $TS,\"userId\": \"demo-$i\",
-  \"eventId\": \"evt-demo-$i\",\"userIP\": \"7.7.7.7\", \"deviceId\": \"dev-$i\",\"mobile\": \"1380000000$i\",
+  \"eventId\": \"evt-demo-$i\",\"userIP\": \"6.6.6.6\", \"deviceId\": \"dev-$i\",\"mobile\": \"1380000000$i\",
   \"passwd\": \"x\", \"os\": \"app\", \"channel\": \"app\"}}"</span> | python3 -m json.tool | grep -A3 activations
 done</code></pre>
   <div class="tbl-wrap"><table>
@@ -735,7 +734,7 @@ done</code></pre>
     <tr><td>团伙 / 图谱关联</td><td>没有图存储，只能数"不同值有几个"</td><td>用 distinct count 近似（同 IP 关联账号数、同设备关联用户数）</td></tr>
     <tr><td>行为序列（N 分钟内先注册后下单）</td><td>抽象是聚合值，不保存事件顺序</td><td>两个窗口差值近似，或业务侧打标成字段后判断</td></tr>
     <tr><td>名单正则 / 号段前缀匹配</td><td>名单是精确字符串比对</td><td>先用「字符串截短」预处理，再拿截短结果入名单</td></tr>
-    <tr><td>黑产库自动同步</td><td>只能页面导入或接口导入</td><td>调 <code>POST /services/v1/datalist/batchImportData</code>（≤1000 条/次）定时推</td></tr>
+    <tr><td>黑产库自动同步</td><td>只能页面导入或接口导入</td><td>定时调 <code>POST /services/v1/datalist/batchImportData</code>（Excel 文件）批量导入</td></tr>
     <tr><td>实时外部特征（征信、设备指纹）</td><td>只有同步 HTTP 插件</td><td>接受同步延迟，或用离线补数 + 缓存表</td></tr>
   </table></div>
 
@@ -755,7 +754,7 @@ done</code></pre>
     <tr><td>score 永远 0、全 pass</td><td>字段名和 JSON key 是否一字不差</td><td>抽象的搜索/函数字段是否配反；事件是否真的写进 Mongo（查 <code>entity_&lt;模型ID&gt;</code> 条数）</td></tr>
     <tr><td>抽象值全 0（1 天有值、短窗口为 0）</td><td><b>eventId 是否重复</b>（重复则不入库，当前事件查不到）</td><td>换新 eventId 重发；用 <code>mongosh</code> 数一下 <code>entity_&lt;ID&gt;</code> 里该 IP 的实际条数</td></tr>
     <tr><td>分数有了但决策不对</td><td>警戒/拒绝值填反（40 应小于 80）</td><td>规则的比较符/阈值</td></tr>
-    <tr><td>配置改了行为没变</td><td>策略行开关是否开</td><td>引擎日志有没有收到配置推送（<code>grep "publish model" engine.log</code>）</td></tr>
+    <tr><td>配置改了行为没变</td><td>策略行开关是否开</td><td>引擎日志有没有订阅到配置推送（Redis 频道 <code>radar_channel_rule</code>）</td></tr>
     <tr><td>多策略打架</td><td>是否有两个策略同时开</td><td>同一模型同时只 ACTIVE 一个</td></tr>
   </table></div>
 </section>
@@ -775,9 +774,10 @@ done</code></pre>
     <tr><th>内容</th><th>来自</th></tr>
     <tr><td>打分公式（初始分 + 规则累加 vs 40/80）</td><td><code>radar-service-impl/.../engine/AntiFraudEngineImpl.java</code></td></tr>
     <tr><td>抽象 → Mongo distinct 查询形态</td><td><code>engine_abstraction</code> 表 + 引擎抽象查询实现</td></tr>
-    <tr><td>本例真实配置</td><td>抽象 <code>log_did_ip_10_min_qty</code>（ID 556）+ 规则 <code>rule_did_ip_10min_ge3</code>（ID 442），配在模型 236 策略「登录异常」，§8 curl 为实测</td></tr>
+    <tr><td>本例真实配置</td><td>抽象 <code>log_did_ip_10_min_qty</code>（ID 556）+ 规则 <code>rule_did_ip_10min_ge3</code>（ID 442），配在模型 236 策略「登录异常」；重建脚本 <code>sql/rebuild-model-236.sql</code>，§8 全部 curl 为实测</td></tr>
+    <tr><td>默认账号 admin/123456</td><td><code>users</code> 表，哈希算法 <code>sha1(passwd + loginName)</code>（<code>CryptUtils</code>）</td></tr>
     <tr><td>数据流转图</td><td><code>docs/radar-data-flow.md</code></td></tr>
-    <tr><td>截图</td><td><code>docs/screenshots/</code>，取自 2026-10-09 真实后台（模型 236）</td></tr>
+    <tr><td>截图</td><td><code>docs/screenshots/</code>，取自 2026-10-29 真实后台（模型 236，admin 6580 / engine 6581）</td></tr>
   </table></div>
 </section>
 

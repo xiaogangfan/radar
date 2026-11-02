@@ -33,5 +33,6 @@ sys:
     entity-duplicate-insert: false # 事件是否允许重复插入
     mongo-restore-days: 3650 # 事件保存时间，默认3个月
     workdir: /Users/happy/Code/sandbox/radar/workdir #   工作目录
+    engine-url: http://127.0.0.1:6581 # 模型列表「自测」调用的引擎地址
 server:
   port: 6580

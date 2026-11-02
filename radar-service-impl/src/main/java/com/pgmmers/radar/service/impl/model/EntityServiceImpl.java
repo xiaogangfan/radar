@@ -67,7 +67,13 @@ public class EntityServiceImpl implements EntityService {
         Document doc = Document.parse(jsonString);
         Document attach = Document.parse(attachJson);
         ModelVO model = modelService.getModelById(modelId);
-        attach.put("radar_ref_datetime", new Date(doc.getLong(model.getReferenceDate())));
+        Long refMillis = doc.getLong(model.getReferenceDate());
+        if (refMillis == null) {
+            // 参考时间字段缺失时原先直接 NPE，400 报文里看不出是哪配错了
+            throw new IllegalArgumentException("事件缺少参考时间字段[" + model.getReferenceDate()
+                    + "]，请核对模型的 REFERENCE_DATE 配置与上报参数");
+        }
+        attach.put("radar_ref_datetime", new Date(refMillis));
         attach.put("status", "1");
         doc.putAll(attach);
         if (!isAllowDuplicate) {
